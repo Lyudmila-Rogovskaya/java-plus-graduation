@@ -1,0 +1,178 @@
+{
+  "info": {
+    "name": "Feature Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Получение событий для модерации",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response is JSON\", function () {",
+              "    pm.response.to.be.json;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/admin/events/moderation?from=0&size=10",
+          "host": ["{{base_url}}"],
+          "path": ["admin", "events", "moderation"],
+          "query": [
+            {
+              "key": "from",
+              "value": "0"
+            },
+            {
+              "key": "size",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Модерация события с отклонением",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Event is rejected\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.state).to.equal(\"CANCELED\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"updateEvent\": {\n    \"stateAction\": \"REJECT_EVENT\"\n  },\n  \"moderationComment\": \"Событие отклонено. Необходимо добавить более подробное описание мероприятия и указать точное место проведения.\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/admin/events/1/moderate",
+          "host": ["{{base_url}}"],
+          "path": ["admin", "events", "1", "moderate"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Модерация события с публикацией (простой)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Проверка статуса ответа",
+              "if (pm.response.code === 409) {",
+              "    pm.test('Событие не в состоянии PENDING', function() {",
+              "        pm.expect(pm.response.json().error.message).to.include('Событие можно публиковать только если оно в состоянии ожидания');",
+              "    });",
+              "} else if (pm.response.code === 200) {",
+              "    pm.test('Событие опубликовано', function() {",
+              "        var jsonData = pm.response.json();",
+              "        pm.expect(jsonData.state).to.equal('PUBLISHED');",
+              "    });",
+              "} else {",
+              "    pm.test('Неожиданный статус: ' + pm.response.code, function() {",
+              "        pm.expect.fail('Неожиданный статус код: ' + pm.response.code);",
+              "    });",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"updateEvent\": {\n    \"stateAction\": \"PUBLISH_EVENT\"\n  },\n  \"moderationComment\": \"Событие прошло модерацию. Отличное описание и аннотация.\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/admin/events/2/moderate",
+          "host": ["{{base_url}}"],
+          "path": ["admin", "events", "2", "moderate"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Просмотр комментариев модерации",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response contains moderation comments\", function () {",
+              "    pm.response.to.be.json;",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.be.an('array');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/users/1/events/1/moderation-comments",
+          "host": ["{{base_url}}"],
+          "path": ["users", "1", "events", "1", "moderation-comments"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    }
+  ]
+}
