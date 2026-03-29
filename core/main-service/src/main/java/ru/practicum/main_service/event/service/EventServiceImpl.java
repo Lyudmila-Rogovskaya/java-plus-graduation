@@ -57,30 +57,6 @@ public class EventServiceImpl implements EventService {
     @Value("${event.moderation.default-from:0}")
     private int defaultModerationFrom;
 
-    private String getClientIp(HttpServletRequest request) {
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
-
-    private void sendStats(HttpServletRequest request) {
-        final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        try {
-            String realIp = getClientIp(request);
-            EndpointHitDto hitDto = EndpointHitDto.builder()
-                    .app("ewm-main-service")
-                    .uri(request.getRequestURI())
-                    .ip(realIp)
-                    .timestamp(LocalDateTime.now().format(FORMATTER))
-                    .build();
-            statClient.hit(hitDto);
-        } catch (Exception e) {
-            log.error("Ошибка при отправке статистики: {}", e.getMessage());
-        }
-    }
-
     @Override
     public List<EventShortDto> getEventsByUser(EventsByUserParams params) {
         log.debug("Получение событий пользователя: userId={}, from={}, size={}", params.getUserId(), params.getFrom(), params.getSize());
@@ -404,6 +380,18 @@ public class EventServiceImpl implements EventService {
         }
     }
 
+    private void sendStats(HttpServletRequest request) {
+        final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        try {
+            EndpointHitDto hitDto = EndpointHitDto.builder().app("ewm-main-service").uri(request.getRequestURI())
+                    .ip(request.getRemoteAddr()).timestamp(LocalDateTime.now().format(FORMATTER)).build();
+
+            statClient.hit(hitDto);
+        } catch (Exception e) {
+            log.error("Ошибка при отправке статистики: {}", e.getMessage());
+        }
+    }
+
     @Override
     public EventFullDto getEventPublic(Long eventId, HttpServletRequest request) {
         Event event = eventRepository.findById(eventId).orElseThrow(() -> new NotFoundException("Событие с id=" + eventId + " не найдено"));
@@ -412,9 +400,9 @@ public class EventServiceImpl implements EventService {
             throw new NotFoundException("Событие с id=" + eventId + " не опубликовано");
         }
 
-        sendStats(request);
         Long eventRequests = getEventRequests(event);
         Long views = getEventViews(event);
+        sendStats(request);
 
         return eventMapper.toEventFullDto(event, eventRequests, views);
     }
