@@ -2,7 +2,7 @@ package ru.practicum.stats_client;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import ru.practicum.stat_dto.EndpointHitDto;
@@ -16,7 +16,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-@ConditionalOnMissingBean(StatClient.class)
+@Primary
 public class RestStatClient implements StatClient {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
