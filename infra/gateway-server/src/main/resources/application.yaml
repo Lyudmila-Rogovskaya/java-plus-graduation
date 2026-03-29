@@ -2,7 +2,7 @@ spring:
   application:
     name: gateway-server
   config:
-    import: optional:configserver:
+    import: "optional:configserver:"
   cloud:
     config:
       discovery:
@@ -12,17 +12,6 @@ spring:
       retry:
         useRandomPolicy: true
         max-interval: 6000
-  cloud:
-    gateway:
-      discovery:
-        locator:
-          enabled: true
-          lower-case-service-id: true
-      routes:
-        - id: main-service-route
-          uri: lb://main-service
-          predicates:
-            - Path=/**
 
 server:
   port: 8080

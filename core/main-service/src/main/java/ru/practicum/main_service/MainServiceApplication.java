@@ -7,7 +7,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 @SpringBootApplication
 @EnableDiscoveryClient
-@ComponentScan(basePackages = {"ru.practicum.main_service", "ru.practicum.stat_client"})
+@ComponentScan(basePackages = {"ru.practicum.main_service", "ru.practicum.stats_client"})
 public class MainServiceApplication {
 
     public static void main(String[] args) {
