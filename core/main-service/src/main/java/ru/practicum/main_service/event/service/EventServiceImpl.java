@@ -401,7 +401,16 @@ public class EventServiceImpl implements EventService {
         }
 
         Long eventRequests = getEventRequests(event);
+
         sendStats(request);
+
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while waiting for stats to be saved", e);
+        }
+
         Long views = getEventViews(event);
         //sendStats(request);
 
