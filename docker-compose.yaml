@@ -19,7 +19,6 @@ services:
     build: ./stats/stats-server
     environment:
       - SERVER_PORT=9090
-      - EUREKA_CLIENT_ENABLED=false
     ports:
       - "9090:9090"
     depends_on:
@@ -39,8 +38,6 @@ services:
   ewm-service:
     build: ./core/main-service
     environment:
-      - SPRING_CLOUD_CONFIG_ENABLED=false
-      - EUREKA_CLIENT_ENABLED=false
       - STAT_SERVER_URL=http://stats-server:9090
     ports:
       - "8080:8080"
