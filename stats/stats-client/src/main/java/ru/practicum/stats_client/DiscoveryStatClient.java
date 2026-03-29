@@ -1,12 +1,12 @@
 package ru.practicum.stats_client;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
+import org.springframework.context.annotation.Profile;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.MaxAttemptsRetryPolicy;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import ru.practicum.stat_dto.EndpointHitDto;
@@ -20,6 +20,7 @@ import java.util.List;
 
 @Slf4j
 @Component
+@Profile("!test")
 public class DiscoveryStatClient implements StatClient {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -28,13 +29,10 @@ public class DiscoveryStatClient implements StatClient {
     private final DiscoveryClient discoveryClient;
     private final RestClient restClient;
     private final RetryTemplate retryTemplate;
-    private final String fallbackUrl;
 
-    public DiscoveryStatClient(DiscoveryClient discoveryClient,
-                               @Value("${stat-server.url:http://localhost:9090}") String fallbackUrl) {
+    public DiscoveryStatClient(DiscoveryClient discoveryClient) {
         this.discoveryClient = discoveryClient;
         this.restClient = RestClient.builder().build();
-        this.fallbackUrl = fallbackUrl;
 
         RetryTemplate template = new RetryTemplate();
         FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
