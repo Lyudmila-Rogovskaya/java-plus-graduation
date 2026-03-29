@@ -399,9 +399,11 @@ public class EventServiceImpl implements EventService {
         if (event.getState() != EventState.PUBLISHED) {
             throw new NotFoundException("Событие с id=" + eventId + " не опубликовано");
         }
+
         Long eventRequests = getEventRequests(event);
-        Long views = getEventViews(event);
         sendStats(request);
+        Long views = getEventViews(event);
+        //sendStats(request);
 
         return eventMapper.toEventFullDto(event, eventRequests, views);
     }
