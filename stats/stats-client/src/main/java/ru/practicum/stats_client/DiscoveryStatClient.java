@@ -1,12 +1,11 @@
 package ru.practicum.stats_client;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.MaxAttemptsRetryPolicy;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import ru.practicum.stat_dto.EndpointHitDto;
@@ -19,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 
 @Slf4j
-@ConditionalOnProperty(name = "eureka.client.enabled", havingValue = "true", matchIfMissing = true)
 @Component
 public class DiscoveryStatClient implements StatClient {
 
