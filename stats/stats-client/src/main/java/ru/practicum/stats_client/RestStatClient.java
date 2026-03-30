@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import ru.practicum.stat_dto.EndpointHitDto;
 import ru.practicum.stat_dto.ViewStatsDto;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -16,7 +17,8 @@ import java.util.List;
 
 @Slf4j
 @Component
-@Primary
+//@Primary
+@ConditionalOnMissingBean(StatClient.class)
 public class RestStatClient implements StatClient {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

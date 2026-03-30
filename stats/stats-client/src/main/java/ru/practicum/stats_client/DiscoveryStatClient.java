@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Slf4j
-@ConditionalOnProperty(name = "eureka.client.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "eureka.client.enabled", havingValue = "true", matchIfMissing = true)
 @Component
 public class DiscoveryStatClient implements StatClient {
 

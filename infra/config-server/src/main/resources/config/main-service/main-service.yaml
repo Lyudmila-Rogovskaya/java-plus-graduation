@@ -16,13 +16,21 @@ spring:
     init:
       mode: always
       schema-locations: classpath:schema.sql
+
 logging:
   level:
     ru.practicum: TRACE
     org.springframework: INFO
     org.hibernate.SQL: INFO
     org.hibernate.type.descriptor.sql.BasicBinder: INFO
+
 event:
   moderation:
     page-size: 10
     default-from: 0
+
+eureka:
+  client:
+    enabled: true
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
