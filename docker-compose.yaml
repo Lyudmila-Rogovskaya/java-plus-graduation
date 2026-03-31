@@ -40,8 +40,6 @@ services:
         condition: service_started
       discovery-server:
         condition: service_healthy
-      config-server:
-        condition: service_started
     networks:
       - ewm-network
 
@@ -50,8 +48,9 @@ services:
     environment:
       - STAT_SERVER_URL=http://stats-server:9090
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-#    ports:
-#      - "8080:8080"
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+    #    ports:
+    #      - "8080:8080"
     depends_on:
       ewm-db:
         condition: service_started
@@ -68,6 +67,7 @@ services:
     build: ./infra/gateway-server
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
     ports:
       - "8080:8080"
     depends_on:
