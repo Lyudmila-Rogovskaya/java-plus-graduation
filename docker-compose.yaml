@@ -3,15 +3,28 @@ services:
     build: ./infra/discovery-server
     ports:
       - "8761:8761"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - ewm-network
 
-  stats-db:
-    image: postgres:16.1
+  config-server:
+    build: ./infra/config-server
     environment:
-      POSTGRES_DB: stats
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    ports:
+      - "8888:8888"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8888/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      discovery-server:
+        condition: service_healthy
     networks:
       - ewm-network
 
@@ -19,10 +32,49 @@ services:
     build: ./stats/stats-server
     environment:
       - SERVER_PORT=9090
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
     ports:
       - "9090:9090"
     depends_on:
-      - stats-db
+      stats-db:
+        condition: service_started
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+    networks:
+      - ewm-network
+
+  ewm-service:
+    build: ./core/main-service
+    environment:
+      - STAT_SERVER_URL=http://stats-server:9090
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+#    ports:
+#      - "8080:8080"
+    depends_on:
+      ewm-db:
+        condition: service_started
+      stats-server:
+        condition: service_started
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - ewm-network
+
+  gateway-server:
+    build: ./infra/gateway-server
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    ports:
+      - "8080:8080"
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
     networks:
       - ewm-network
 
@@ -35,15 +87,12 @@ services:
     networks:
       - ewm-network
 
-  ewm-service:
-    build: ./core/main-service
+  stats-db:
+    image: postgres:16.1
     environment:
-      - STAT_SERVER_URL=http://stats-server:9090
-    ports:
-      - "8080:8080"
-    depends_on:
-      - ewm-db
-      - stats-server
+      POSTGRES_DB: stats
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
     networks:
       - ewm-network
 

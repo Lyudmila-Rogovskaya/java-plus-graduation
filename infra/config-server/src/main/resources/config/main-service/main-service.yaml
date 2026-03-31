@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://main-db:5432/ewm
+    url: jdbc:postgresql://ewm-db:5432/ewm
     username: user
     password: password
     driver-class-name: org.postgresql.Driver
@@ -16,6 +16,21 @@ spring:
     init:
       mode: always
       schema-locations: classpath:schema.sql
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        serviceId: config-server
+      fail-fast: true
+      retry:
+        maxAttempts: 15
+        initialInterval: 2000
+        multiplier: 1.5
+        maxInterval: 10000
+
+stat:
+  server:
+    url: http://stats-server:9090
 
 logging:
   level:

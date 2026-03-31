@@ -31,5 +31,8 @@ public interface CompilationMapper {
         return events.stream().map(this::eventToEventShortDto).collect(Collectors.toSet());
     }
 
+    @Mapping(target = "confirmedRequests", ignore = true)
+    @Mapping(target = "views", ignore = true)
     EventShortDto eventToEventShortDto(Event event);
+
 }

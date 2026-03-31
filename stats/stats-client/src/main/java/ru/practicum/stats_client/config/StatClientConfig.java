@@ -8,7 +8,7 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class StatClientConfig {
 
-    @Value("${stat-server.url:http://localhost:9090}")
+    @Value("${stat.server.url:http://localhost:9090}")
     private String statServerUrl;
 
     @Bean
