@@ -10,10 +10,10 @@ spring:
         serviceId: config-server
       fail-fast: true
       retry:
-        maxAttempts: 3
-        initialInterval: 3000
-        multiplier: 1.1
-        maxInterval: 6000
+        maxAttempts: 15
+        initialInterval: 2000
+        multiplier: 1.5
+        maxInterval: 10000
 
 server:
   port: 0

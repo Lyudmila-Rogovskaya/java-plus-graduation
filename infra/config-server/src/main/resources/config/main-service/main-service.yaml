@@ -29,8 +29,8 @@ spring:
         maxInterval: 10000
 
 stat:
-  server:
-    url: http://stats-server:9090
+#  server:
+#    url: http://stats-server:9090
   service:
     id: stats-server
 
