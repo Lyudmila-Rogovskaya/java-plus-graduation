@@ -1,11 +1,12 @@
 package ru.practicum.stats_client;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.MaxAttemptsRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import ru.practicum.stat_dto.EndpointHitDto;
@@ -22,7 +23,9 @@ import java.util.List;
 public class DiscoveryStatClient implements StatClient {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    private static final String STATS_SERVICE_ID = "stats-server";
+
+    @Value("${stat.service.id:stats-server}")
+    private String statsServiceId;
 
     private final DiscoveryClient discoveryClient;
     private final RestClient restClient;
@@ -43,13 +46,13 @@ public class DiscoveryStatClient implements StatClient {
 
     private ServiceInstance getInstance() {
         try {
-            List<ServiceInstance> instances = discoveryClient.getInstances(STATS_SERVICE_ID);
+            List<ServiceInstance> instances = discoveryClient.getInstances(statsServiceId);
             if (instances.isEmpty()) {
                 throw new RuntimeException("No instances of stats-server found");
             }
             return instances.get(0);
         } catch (Exception e) {
-            log.error("Ошибка обнаружения сервиса статистики с id: {}", STATS_SERVICE_ID, e);
+            log.error("Ошибка обнаружения сервиса статистики с id: {}", statsServiceId, e);
             throw new RuntimeException("Ошибка обнаружения сервиса статистики", e);
         }
     }
