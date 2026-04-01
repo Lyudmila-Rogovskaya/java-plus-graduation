@@ -15,11 +15,6 @@ services:
     build: ./infra/config-server
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-#    healthcheck:
-#      test: [ "CMD", "curl", "-f", "http://localhost:8888/actuator/health" ]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 5
     depends_on:
       discovery-server:
         condition: service_healthy
@@ -29,7 +24,6 @@ services:
   stats-server:
     build: ./stats/stats-server
     environment:
-#      - SERVER_PORT=9090
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
     depends_on:
       stats-db:
@@ -42,9 +36,7 @@ services:
   ewm-service:
     build: ./core/main-service
     environment:
-#      - STAT_SERVER_URL=http://stats-server:9090
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-#      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
     depends_on:
       ewm-db:
         condition: service_started
@@ -61,7 +53,6 @@ services:
     build: ./infra/gateway-server
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-#      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
     ports:
       - "8080:8080"
     depends_on:
