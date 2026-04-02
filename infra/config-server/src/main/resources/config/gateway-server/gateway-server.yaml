@@ -1,0 +1,22 @@
+spring:
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: main-service-route
+          uri: lb://main-service
+          predicates:
+            - Path=/**
+    config:
+      discovery:
+        enabled: true
+        serviceId: config-server
+      fail-fast: true
+      retry:
+        maxAttempts: 15
+        initialInterval: 2000
+        multiplier: 1.5
+        maxInterval: 10000
