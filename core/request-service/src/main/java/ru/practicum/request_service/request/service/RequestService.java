@@ -1,5 +1,6 @@
 package ru.practicum.request_service.request.service;
 
+import ru.practicum.request_service.request.dto.ConfirmedRequestsDto;
 import ru.practicum.request_service.request.dto.EventRequestStatusUpdateResult;
 import ru.practicum.request_service.request.dto.ParticipationRequestDto;
 import ru.practicum.request_service.request.dto.param.CancelRequestParamDto;
@@ -19,5 +20,7 @@ public interface RequestService {
     List<ParticipationRequestDto> getEventRequests(RequestParamDto paramDto);
 
     EventRequestStatusUpdateResult updateRequestStatus(UpdateRequestStatusParamDto paramDto);
+
+    List<ConfirmedRequestsDto> getConfirmedRequestsCount(List<Long> eventIds);
 
 }

@@ -4,11 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.request_service.event.model.Event;
-import ru.practicum.request_service.event.model.EventState;
-import ru.practicum.request_service.event.repository.EventRepository;
+import ru.practicum.event_service.event.model.Event;
+import ru.practicum.event_service.event.model.EventState;
+import ru.practicum.event_service.event.repository.EventRepository;
 import ru.practicum.request_service.exception.ConflictException;
 import ru.practicum.request_service.exception.NotFoundException;
+import ru.practicum.request_service.request.dto.ConfirmedRequestsDto;
 import ru.practicum.request_service.request.dto.EventRequestStatusUpdateResult;
 import ru.practicum.request_service.request.dto.ParticipationRequestDto;
 import ru.practicum.request_service.request.dto.param.CancelRequestParamDto;
@@ -18,12 +19,12 @@ import ru.practicum.request_service.request.mapper.RequestMapper;
 import ru.practicum.request_service.request.model.Request;
 import ru.practicum.request_service.request.model.RequestStatus;
 import ru.practicum.request_service.request.repository.RequestRepository;
-import ru.practicum.request_service.request.service.RequestService;
-import ru.practicum.request_service.user.model.User;
-import ru.practicum.request_service.user.repository.UserRepository;
+import ru.practicum.user_service.user.model.User;
+import ru.practicum.user_service.user.repository.UserRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -226,6 +227,14 @@ public class RequestServiceImpl implements RequestService {
             return false;
         }
         return confirmedCount >= event.getParticipantLimit();
+    }
+
+    @Override
+    public List<ConfirmedRequestsDto> getConfirmedRequestsCount(List<Long> eventIds) {
+        List<Object[]> results = requestRepository.countConfirmedRequestsByEventIds(eventIds, RequestStatus.CONFIRMED);
+        return results.stream()
+                .map(row -> new ConfirmedRequestsDto((Long) row[0], (Long) row[1]))
+                .collect(Collectors.toList());
     }
 
 }

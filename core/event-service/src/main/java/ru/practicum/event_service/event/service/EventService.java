@@ -1,10 +1,7 @@
 package ru.practicum.event_service.event.service;
 
 import jakarta.servlet.http.HttpServletRequest;
-import ru.practicum.event_service.event.dto.EventFullDto;
-import ru.practicum.event_service.event.dto.EventFullDtoWithModeration;
-import ru.practicum.event_service.event.dto.EventShortDto;
-import ru.practicum.event_service.event.dto.NewEventDto;
+import ru.practicum.event_service.event.dto.*;
 
 import java.util.List;
 
@@ -30,5 +27,7 @@ public interface EventService {
                                                              UpdateEventAdminRequestWithComment updateRequest);
 
     List<EventFullDtoWithModeration> getEventsForModeration(Integer from, Integer size);
+
+    EventValidationDto validateEvent(Long eventId);
 
 }

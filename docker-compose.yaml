@@ -33,6 +33,63 @@ services:
     networks:
       - ewm-network
 
+  user-service:
+    build: ./core/user-service
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      user-db:
+        condition: service_started
+    networks:
+      - ewm-network
+
+  event-service:
+    build: ./core/event-service
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      event-db:
+        condition: service_started
+    networks:
+      - ewm-network
+
+  request-service:
+    build: ./core/request-service
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      request-db:
+        condition: service_started
+    networks:
+      - ewm-network
+
+  moderation-service:
+    build: ./core/moderation-service
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      moderation-db:
+        condition: service_started
+    networks:
+      - ewm-network
+
+  # Старый монолитный сервис (удалить после полного переноса)
   ewm-service:
     build: ./core/main-service
     environment:
@@ -76,6 +133,42 @@ services:
     image: postgres:16.1
     environment:
       POSTGRES_DB: stats
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    networks:
+      - ewm-network
+
+  user-db:
+    image: postgres:16.1
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    networks:
+      - ewm-network
+
+  event-db:
+    image: postgres:16.1
+    environment:
+      POSTGRES_DB: events
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    networks:
+      - ewm-network
+
+  request-db:
+    image: postgres:16.1
+    environment:
+      POSTGRES_DB: requests
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    networks:
+      - ewm-network
+
+  moderation-db:
+    image: postgres:16.1
+    environment:
+      POSTGRES_DB: moderation
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
     networks:

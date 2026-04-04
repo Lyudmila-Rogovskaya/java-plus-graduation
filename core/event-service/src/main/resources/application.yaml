@@ -22,3 +22,49 @@ eureka:
   client:
     serviceUrl:
       defaultZone: http://localhost:8761/eureka/
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 2000
+        readTimeout: 5000
+        loggerLevel: basic
+  circuitbreaker:
+    enabled: true
+    group:
+      enabled: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      requestClient:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        slowCallRateThreshold: 100
+        slowCallDurationThreshold: 2s
+      moderationCommentClient:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+  retry:
+    instances:
+      requestClient:
+        maxAttempts: 3
+        waitDuration: 1000
+        retryExceptions:
+          - feign.RetryableException
+          - java.net.SocketTimeoutException
+      moderationCommentClient:
+        maxAttempts: 3
+        waitDuration: 1000
+        retryExceptions:
+          - feign.RetryableException
+          - java.net.SocketTimeoutException

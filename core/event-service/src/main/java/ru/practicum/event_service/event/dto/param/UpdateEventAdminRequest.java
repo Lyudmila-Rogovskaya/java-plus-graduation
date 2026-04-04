@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.practicum.event_service.event.dto.param.UpdateEventRequest;
 import ru.practicum.event_service.event.model.Location;
 import ru.practicum.event_service.event.model.StateAction;
 

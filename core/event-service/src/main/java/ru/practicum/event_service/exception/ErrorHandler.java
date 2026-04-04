@@ -7,9 +7,6 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import ru.practicum.event_service.exception.ApiError;
-import ru.practicum.event_service.exception.ApiErrorWrapper;
-import ru.practicum.event_service.exception.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -38,8 +35,8 @@ public class ErrorHandler {
     public ApiErrorWrapper handleNotFoundException(NotFoundException e) {
         log.warn("Объект не найден: {}", e.getMessage());
 
-        ApiError apiError = new ApiError("NOT_FOUND", "The required object was not found.",  // ← Стандартный reason
-                e.getMessage(),  // ← Конкретное сообщение
+        ApiError apiError = new ApiError("NOT_FOUND", "The required object was not found.",
+                e.getMessage(),
                 LocalDateTime.now().format(FORMATTER));
 
         return new ApiErrorWrapper(apiError);

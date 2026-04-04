@@ -5,8 +5,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import ru.practicum.event_service.category.dto.CategoryDto;
-import ru.practicum.event_service.event.dto.EventFullDto;
-import ru.practicum.event_service.event.dto.ModerationCommentDto;
 import ru.practicum.event_service.event.model.EventState;
 import ru.practicum.event_service.event.model.Location;
 import ru.practicum.event_service.user.dto.UserShortDto;

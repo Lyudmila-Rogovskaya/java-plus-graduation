@@ -42,4 +42,5 @@ public class StatService {
             return statRepository.getStats(startTime, endTime, uris);
         }
     }
+
 }

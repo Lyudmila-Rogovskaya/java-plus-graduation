@@ -3,7 +3,6 @@ package ru.practicum.request_service.request.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.practicum.request_service.request.dto.ParticipationRequestDto;
 
 import java.util.List;
 

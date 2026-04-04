@@ -11,6 +11,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.event_service.category.model.Category;
 import ru.practicum.event_service.category.service.CategoryService;
+import ru.practicum.event_service.client.ModerationCommentClient;
+import ru.practicum.event_service.client.RequestClient;
+import ru.practicum.event_service.client.dto.ConfirmedRequestsDto;
+import ru.practicum.event_service.client.dto.CreateCommentRequest;
+import ru.practicum.event_service.event.dto.*;
+import ru.practicum.event_service.event.dto.param.*;
 import ru.practicum.event_service.event.mapper.EventMapper;
 import ru.practicum.event_service.event.model.Event;
 import ru.practicum.event_service.event.model.EventState;
@@ -19,13 +25,11 @@ import ru.practicum.event_service.event.repository.EventRepository;
 import ru.practicum.event_service.exception.ConflictException;
 import ru.practicum.event_service.exception.NotFoundException;
 import ru.practicum.event_service.exception.ValidationException;
-import ru.practicum.event_service.request.model.RequestStatus;
-import ru.practicum.event_service.request.repository.RequestRepository;
-import ru.practicum.event_service.user.model.User;
-import ru.practicum.event_service.user.service.UserService;
-import ru.practicum.event_dto.EndpointHitDto;
-import ru.practicum.event_dto.ViewStatsDto;
-import ru.practicum.event_client.StatClient;
+import ru.practicum.stat_dto.EndpointHitDto;
+import ru.practicum.stat_dto.ViewStatsDto;
+import ru.practicum.stats_client.StatClient;
+import ru.practicum.user_service.user.model.User;
+import ru.practicum.user_service.user.service.UserService;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -42,12 +46,12 @@ import java.util.stream.Collectors;
 public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
-    private final RequestRepository requestRepository;
     private final CategoryService categoryService;
     private final EventMapper eventMapper;
     private final StatClient statClient;
     private final UserService userService;
-    private final ModerationCommentService moderationCommentService;
+    private final RequestClient requestClient;
+    private final ModerationCommentClient moderationCommentClient;
 
     @Value("${event.moderation.page-size:10}")
     private int defaultModerationPageSize;
@@ -83,11 +87,15 @@ public class EventServiceImpl implements EventService {
     }
 
     private Map<Long, Long> getConfirmedRequestsBatch(List<Event> events) {
+        if (events.isEmpty()) {
+            return Map.of();
+        }
         log.trace("Получение подтвержденных запросов для {} событий", events.size());
         List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
-        List<Object[]> results = requestRepository.countConfirmedRequestsByEventIds(eventIds, RequestStatus.CONFIRMED);
+        List<ConfirmedRequestsDto> results = requestClient.getConfirmedRequests(eventIds);
         log.trace("Получено {} результатов о подтвержденных запросах", results.size());
-        return results.stream().collect(Collectors.toMap(result -> (Long) result[0], result -> (Long) result[1]));
+        return results.stream()
+                .collect(Collectors.toMap(ConfirmedRequestsDto::getEventId, ConfirmedRequestsDto::getCount));
     }
 
     private Map<Long, Long> getEventsViewsBatch(List<Event> events) {
@@ -131,7 +139,11 @@ public class EventServiceImpl implements EventService {
     }
 
     private Long getEventRequests(Event event) {
-        return requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED);
+        List<ConfirmedRequestsDto> result = requestClient.getConfirmedRequests(List.of(event.getId()));
+        if (result.isEmpty()) {
+            return 0L;
+        }
+        return result.get(0).getCount();
     }
 
     private Long getEventViews(Event event) {
@@ -200,7 +212,7 @@ public class EventServiceImpl implements EventService {
                     break;
                 case SEND_TO_REVIEW:
                     if (event.getState() == EventState.CANCELED) {
-                        moderationCommentService.deleteCommentsByEventId(eventId);
+                        moderationCommentClient.deleteCommentsByEventId(eventId);
                     }
                     event.setState(EventState.PENDING);
                     break;
@@ -456,7 +468,8 @@ public class EventServiceImpl implements EventService {
                     event.setPublishedOn(LocalDateTime.now());
 
                     if (moderationComment != null && !moderationComment.trim().isEmpty()) {
-                        moderationCommentService.createComment(event, adminId, moderationComment);
+                        CreateCommentRequest request = new CreateCommentRequest(eventId, adminId, moderationComment);
+                        moderationCommentClient.createComment(request);
                     }
                     break;
 
@@ -469,7 +482,8 @@ public class EventServiceImpl implements EventService {
                     if (moderationComment == null || moderationComment.trim().isEmpty()) {
                         throw new ValidationException("При отклонении события необходимо указать причину");
                     }
-                    moderationCommentService.createComment(event, adminId, moderationComment.trim());
+                    CreateCommentRequest request = new CreateCommentRequest(eventId, adminId, moderationComment.trim());
+                    moderationCommentClient.createComment(request);
                     break;
             }
         }
@@ -477,7 +491,7 @@ public class EventServiceImpl implements EventService {
         Event updatedEvent = eventRepository.save(event);
         log.info("Администратором обновлено событие с id: {} с комментарием модерации", eventId);
 
-        List<ModerationCommentDto> comments = moderationCommentService.getCommentsByEventId(eventId);
+        List<ModerationCommentDto> comments = moderationCommentClient.getCommentsByEventIds(List.of(eventId));
 
         Long views = getEventViews(updatedEvent);
         Long eventRequests = getEventRequests(updatedEvent);
@@ -529,14 +543,40 @@ public class EventServiceImpl implements EventService {
         if (eventIds.isEmpty()) {
             return Collections.emptyMap();
         }
-
-        List<ModerationCommentDto> allComments = moderationCommentService.getCommentsByEventIds(eventIds);
-
+        List<ModerationCommentDto> allComments = moderationCommentClient.getCommentsByEventIds(eventIds);
         return allComments.stream()
                 .collect(Collectors.groupingBy(
                         ModerationCommentDto::getEventId,
                         Collectors.toList()
                 ));
+    }
+
+    @Override
+    public EventValidationDto validateEvent(Long eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException("Event not found with id: " + eventId));
+        return EventValidationDto.builder()
+                .eventId(event.getId())
+                .published(event.getState() == EventState.PUBLISHED)
+                .participantLimit(event.getParticipantLimit())
+                .requestModeration(event.getRequestModeration())
+                .initiatorId(event.getInitiator().getId())
+                .title(event.getTitle())
+                .build();
+    }
+
+    @Override
+    public EventDto getEventDto(Long eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException("Event not found with id: " + eventId));
+        return EventDto.builder()
+                .id(event.getId())
+                .initiatorId(event.getInitiator().getId())
+                .state(event.getState().name())
+                .participantLimit(event.getParticipantLimit())
+                .requestModeration(event.getRequestModeration())
+                .title(event.getTitle())
+                .build();
     }
 
 }
