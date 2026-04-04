@@ -1,4 +1,4 @@
-package ru.practicum.request_service; // новый
+package ru.practicum.request_service;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

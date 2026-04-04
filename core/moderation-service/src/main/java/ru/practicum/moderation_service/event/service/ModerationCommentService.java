@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.moderation_service.event.dto.ModerationCommentDto;
 import ru.practicum.moderation_service.event.mapper.ModerationCommentMapper;
-import ru.practicum.moderation_service.event.model.Event;
 import ru.practicum.moderation_service.event.model.ModerationComment;
 import ru.practicum.moderation_service.event.repository.ModerationCommentRepository;
 
@@ -22,38 +21,30 @@ public class ModerationCommentService {
     private final ModerationCommentMapper moderationCommentMapper;
 
     @Transactional
-    public ModerationCommentDto createComment(Event event, Long adminId, String commentText) {
+    public ModerationCommentDto createComment(Long eventId, Long adminId, String commentText) {
         ModerationComment comment = ModerationComment.builder()
-                .event(event)
+                .eventId(eventId)
                 .adminId(adminId)
                 .commentText(commentText)
                 .build();
 
         ModerationComment savedComment = moderationCommentRepository.save(comment);
-        log.info("Создан комментарий модерации с id: {} для события с id: {}",
-                savedComment.getId(), event.getId());
+        log.info("Создан комментарий модерации с id: {} для события с id: {}", savedComment.getId(), eventId);
 
         return moderationCommentMapper.toDto(savedComment);
     }
 
     public List<ModerationCommentDto> getCommentsByEventId(Long eventId) {
-        List<ModerationComment> comments = moderationCommentRepository
-                .findByEventIdOrderByCreatedOnDesc(eventId);
-
-        return comments.stream()
-                .map(moderationCommentMapper::toDto)
-                .toList();
+        List<ModerationComment> comments = moderationCommentRepository.findByEventIdOrderByCreatedOnDesc(eventId);
+        return comments.stream().map(moderationCommentMapper::toDto).toList();
     }
 
     @Transactional
     public void deleteCommentsByEventId(Long eventId) {
-        List<ModerationComment> comments = moderationCommentRepository
-                .findByEventIdOrderByCreatedOnDesc(eventId);
-
+        List<ModerationComment> comments = moderationCommentRepository.findByEventIdOrderByCreatedOnDesc(eventId);
         if (!comments.isEmpty()) {
             moderationCommentRepository.deleteAll(comments);
-            log.info("Удалено {} комментариев модерации для события с id: {}",
-                    comments.size(), eventId);
+            log.info("Удалено {} комментариев модерации для события с id: {}", comments.size(), eventId);
         }
     }
 

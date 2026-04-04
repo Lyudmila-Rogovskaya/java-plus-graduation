@@ -7,9 +7,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConfirmedRequestsDto {
+public class UserShortDto {
 
-    private Long eventId;
-    private Long count;
+    private Long id;
+    private String name;
 
 }

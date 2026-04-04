@@ -1,4 +1,4 @@
-package ru.practicum.request_service.dto; // новый
+package ru.practicum.request_service.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

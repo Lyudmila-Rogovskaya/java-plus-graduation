@@ -18,6 +18,11 @@ services:
     depends_on:
       discovery-server:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - ewm-network
 
@@ -85,23 +90,6 @@ services:
       config-server:
         condition: service_started
       moderation-db:
-        condition: service_started
-    networks:
-      - ewm-network
-
-  # Старый монолитный сервис (удалить после полного переноса)
-  ewm-service:
-    build: ./core/main-service
-    environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-    depends_on:
-      ewm-db:
-        condition: service_started
-      stats-server:
-        condition: service_started
-      discovery-server:
-        condition: service_healthy
-      config-server:
         condition: service_started
     networks:
       - ewm-network

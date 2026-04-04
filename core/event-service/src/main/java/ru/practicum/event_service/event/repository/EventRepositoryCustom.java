@@ -13,6 +13,6 @@ public interface EventRepositoryCustom {
                                   LocalDateTime rangeStart, LocalDateTime rangeEnd, Pageable pageable);
 
     List<Event> findEventsPublic(String text, List<Long> categories, Boolean paid, LocalDateTime rangeStart,
-                                 LocalDateTime rangeEnd, Boolean onlyAvailable, Pageable pageable);
+                                 LocalDateTime rangeEnd, Pageable pageable);
 
 }

@@ -1,4 +1,4 @@
-package ru.practicum.event_service.event.dto; // новый
+package ru.practicum.event_service.event.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

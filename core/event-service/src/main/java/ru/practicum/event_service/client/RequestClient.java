@@ -1,4 +1,4 @@
-package ru.practicum.event_service.client; // новый
+package ru.practicum.event_service.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;

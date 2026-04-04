@@ -1,4 +1,4 @@
-package ru.practicum.moderation_service.event.controller; // новый
+package ru.practicum.moderation_service.event.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

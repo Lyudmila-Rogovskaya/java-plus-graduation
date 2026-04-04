@@ -11,13 +11,11 @@ import ru.practicum.event_service.event.dto.NewEventDto;
 import ru.practicum.event_service.event.dto.param.UpdateEventRequest;
 import ru.practicum.event_service.event.model.Event;
 import ru.practicum.event_service.event.model.EventState;
-import ru.practicum.event_service.user.mapper.UserMapper;
-import ru.practicum.event_service.user.model.User;
 
 import java.time.LocalDateTime;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING,
-        uses = {CategoryMapper.class, UserMapper.class}, imports = {LocalDateTime.class, EventState.class})
+        uses = {CategoryMapper.class}, imports = {LocalDateTime.class, EventState.class})
 public abstract class EventMapper {
 
     @Autowired
@@ -45,6 +43,7 @@ public abstract class EventMapper {
 
     @Mapping(target = "confirmedRequests", ignore = true)
     @Mapping(target = "views", ignore = true)
+    @Mapping(target = "initiator", ignore = true)
     public abstract EventFullDto toEventFullDto(Event event);
 
     public EventFullDto toEventFullDto(Event event, Long confirmedRequests, Long views) {
@@ -60,6 +59,7 @@ public abstract class EventMapper {
 
     @Mapping(target = "confirmedRequests", ignore = true)
     @Mapping(target = "views", ignore = true)
+    @Mapping(target = "initiator", ignore = true)
     public abstract EventShortDto toEventShortDto(Event event);
 
     public EventShortDto toEventShortDto(Event event, Long confirmedRequests, Long views) {
@@ -77,8 +77,8 @@ public abstract class EventMapper {
     @Mapping(target = "createdOn", expression = "java(LocalDateTime.now())")
     @Mapping(target = "state", constant = "PENDING")
     @Mapping(target = "category", source = "category")
-    @Mapping(target = "initiator", source = "initiator")
+    @Mapping(target = "initiatorId", source = "initiatorId")
     @Mapping(target = "publishedOn", ignore = true)
-    public abstract Event toNewEvent(NewEventDto newEventDto, Category category, User initiator);
+    public abstract Event toNewEvent(NewEventDto newEventDto, Category category, Long initiatorId);
 
 }

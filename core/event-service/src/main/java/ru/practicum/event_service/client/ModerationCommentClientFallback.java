@@ -1,4 +1,4 @@
-package ru.practicum.event_service.client; // новый
+package ru.practicum.event_service.client;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -21,6 +21,11 @@ public class ModerationCommentClientFallback implements ModerationCommentClient 
     public ModerationCommentDto createComment(CreateCommentRequest request) {
         log.warn("Moderation-service is unavailable, cannot create comment for event {}", request.getEventId());
         throw new RuntimeException("Moderation service is temporarily unavailable");
+    }
+
+    @Override
+    public void deleteCommentsByEventId(Long eventId) {
+        log.warn("Moderation-service is unavailable, cannot delete comments for eventId: {}", eventId);
     }
 
 }

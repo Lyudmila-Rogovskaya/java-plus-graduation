@@ -4,6 +4,5 @@ CREATE TABLE IF NOT EXISTS moderation_comments (
     admin_id BIGINT,
     comment_text TEXT NOT NULL,
     created_on TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL,
-    CONSTRAINT pk_moderation_comments PRIMARY KEY (id),
-    CONSTRAINT fk_moderation_comments_events FOREIGN KEY (event_id) REFERENCES events (id)
+    CONSTRAINT pk_moderation_comments PRIMARY KEY (id)
 );

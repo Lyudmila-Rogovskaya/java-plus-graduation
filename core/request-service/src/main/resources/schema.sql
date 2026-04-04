@@ -4,8 +4,5 @@ CREATE TABLE IF NOT EXISTS requests (
     event_id BIGINT NOT NULL,
     requester_id BIGINT NOT NULL,
     status VARCHAR(20) NOT NULL,
-    CONSTRAINT pk_requests PRIMARY KEY (id),
-    CONSTRAINT fk_requests_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-    CONSTRAINT fk_requests_user FOREIGN KEY (requester_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT uq_requester_event UNIQUE (requester_id, event_id)
+    CONSTRAINT pk_requests PRIMARY KEY (id)
 );

@@ -1,4 +1,4 @@
-package ru.practicum.request_service.config; // новый
+package ru.practicum.request_service.config;
 
 import feign.Logger;
 import feign.Retryer;

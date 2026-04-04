@@ -1,4 +1,4 @@
-package ru.practicum.event_service.user.dto; // скопировала из эвент сервис
+package ru.practicum.event_service.client.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

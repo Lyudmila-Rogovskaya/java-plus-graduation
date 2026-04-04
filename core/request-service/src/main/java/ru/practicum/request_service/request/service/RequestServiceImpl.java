@@ -4,9 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.event_service.event.model.Event;
-import ru.practicum.event_service.event.model.EventState;
-import ru.practicum.event_service.event.repository.EventRepository;
+import ru.practicum.request_service.client.EventClient;
+import ru.practicum.request_service.client.UserClient;
+import ru.practicum.request_service.dto.EventValidationDto;
 import ru.practicum.request_service.exception.ConflictException;
 import ru.practicum.request_service.exception.NotFoundException;
 import ru.practicum.request_service.request.dto.ConfirmedRequestsDto;
@@ -19,8 +19,6 @@ import ru.practicum.request_service.request.mapper.RequestMapper;
 import ru.practicum.request_service.request.model.Request;
 import ru.practicum.request_service.request.model.RequestStatus;
 import ru.practicum.request_service.request.repository.RequestRepository;
-import ru.practicum.user_service.user.model.User;
-import ru.practicum.user_service.user.repository.UserRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,32 +30,58 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class RequestServiceImpl implements RequestService {
 
-    private static final String EVENT_NOT_FOUND = "Событие с ID %s не найдено";
     private static final String LIMIT_REACHED = "Достигнут лимит участников";
 
     private final RequestRepository requestRepository;
-    private final UserRepository userRepository;
-    private final EventRepository eventRepository;
     private final RequestMapper requestMapper;
+    private final EventClient eventClient;
+    private final UserClient userClient;
 
     @Override
     public List<ParticipationRequestDto> getUserRequests(Long userId) {
         log.info("Получение заявок пользователя с ID: {}", userId);
-        return requestRepository.findByRequesterId(userId).stream().map(requestMapper::toDto).toList();
+        try {
+            userClient.getUser(userId);
+        } catch (Exception e) {
+            throw new NotFoundException("Пользователь с ID " + userId + " не найден");
+        }
+        return requestRepository.findByRequesterId(userId).stream()
+                .map(requestMapper::toDto)
+                .toList();
     }
 
     @Override
     @Transactional
     public ParticipationRequestDto createRequest(RequestParamDto paramDto) {
-        log.info("Создание заявки пользователя {} на событие {}", paramDto.getUserId(), paramDto.getEventId());
+        Long userId = paramDto.getUserId();
+        Long eventId = paramDto.getEventId();
+        log.info("Создание заявки пользователя {} на событие {}", userId, eventId);
 
-        User user = userRepository.findById(paramDto.getUserId()).orElseThrow(() -> new NotFoundException(String.format("Пользователь с ID %s не найден", paramDto.getEventId())));
+        try {
+            userClient.getUser(userId);
+        } catch (Exception e) {
+            throw new NotFoundException("Пользователь с ID " + userId + " не найден");
+        }
 
-        Event event = eventRepository.findById(paramDto.getEventId()).orElseThrow(() -> new NotFoundException(String.format(EVENT_NOT_FOUND, paramDto.getEventId())));
+        EventValidationDto eventValidation;
+        try {
+            eventValidation = eventClient.validateEvent(eventId);
+        } catch (Exception e) {
+            throw new NotFoundException("Событие с ID " + eventId + " не найдено");
+        }
 
-        validateRequestCreation(paramDto.getUserId(), paramDto.getEventId(), event);
+        validateRequestCreation(userId, eventId, eventValidation);
 
-        Request request = createRequestEntity(event, user);
+        Request request = requestMapper.toEntity(eventId, userId);
+
+        if (isRequestModerationNotRequired(eventValidation) || eventValidation.getParticipantLimit() == 0) {
+            request.setStatus(RequestStatus.CONFIRMED);
+            log.debug("Заявка автоматически подтверждена (отключена модерация или лимит 0)");
+        } else {
+            request.setStatus(RequestStatus.PENDING);
+            log.debug("Заявка создана со статусом PENDING");
+        }
+
         Request savedRequest = requestRepository.save(request);
 
         log.info("Заявка создана с ID: {}", savedRequest.getId());
@@ -84,69 +108,84 @@ public class RequestServiceImpl implements RequestService {
 
     @Override
     public List<ParticipationRequestDto> getEventRequests(RequestParamDto paramDto) {
-        log.info("Получение заявок на событие {} пользователя {}", paramDto.getEventId(), paramDto.getUserId());
+        Long userId = paramDto.getUserId();
+        Long eventId = paramDto.getEventId();
+        log.info("Получение заявок на событие {} пользователя {}", eventId, userId);
 
-        if (!eventRepository.existsByIdAndInitiatorId(paramDto.getEventId(), paramDto.getUserId())) {
-            throw new NotFoundException(String.format(EVENT_NOT_FOUND, paramDto.getEventId()));
+        EventValidationDto eventValidation;
+        try {
+            eventValidation = eventClient.validateEvent(eventId);
+        } catch (Exception e) {
+            throw new NotFoundException("Событие с ID " + eventId + " не найдено");
         }
 
-        return requestRepository.findByEventId(paramDto.getEventId()).stream().map(requestMapper::toDto).toList();
+        if (!eventValidation.getInitiatorId().equals(userId)) {
+            throw new NotFoundException("Событие с ID " + eventId + " не найдено или вы не являетесь его инициатором");
+        }
+
+        return requestRepository.findByEventId(eventId).stream().map(requestMapper::toDto).toList();
     }
 
     @Override
     @Transactional
     public EventRequestStatusUpdateResult updateRequestStatus(UpdateRequestStatusParamDto paramDto) {
-        log.info("Изменение статуса заявок на событие {} пользователем {}", paramDto.getEventId(), paramDto.getUserId());
+        Long userId = paramDto.getUserId();
+        Long eventId = paramDto.getEventId();
+        log.info("Изменение статуса заявок на событие {} пользователем {}", eventId, userId);
 
-        Event event = eventRepository.findByIdAndInitiatorId(paramDto.getEventId(), paramDto.getUserId()).orElseThrow(() -> new NotFoundException(String.format(EVENT_NOT_FOUND, paramDto.getEventId())));
+        EventValidationDto eventValidation;
+        try {
+            eventValidation = eventClient.validateEvent(eventId);
+        } catch (Exception e) {
+            throw new NotFoundException("Событие с ID " + eventId + " не найдено");
+        }
+
+        if (!eventValidation.getInitiatorId().equals(userId)) {
+            throw new NotFoundException("Событие с ID " + eventId + " не найдено или вы не являетесь его инициатором");
+        }
 
         List<Request> requests = requestRepository.findByIdIn(paramDto.getUpdateRequest().getRequestIds());
         if (requests.isEmpty()) {
             throw new NotFoundException("Заявки не найдены");
         }
 
-        if (shouldAutoConfirmRequests(event)) {
+        if (shouldAutoConfirmRequests(eventValidation)) {
             return autoConfirmRequests(requests);
         }
 
-        return processRequestsWithLimit(event, requests, paramDto.getUpdateRequest().getStatus());
+        return processRequestsWithLimit(eventValidation, requests, paramDto.getUpdateRequest().getStatus());
     }
 
-    private void validateRequestCreation(Long userId, Long eventId, Event event) {
+    private void validateRequestCreation(Long userId, Long eventId, EventValidationDto eventValidation) {
         if (requestRepository.existsByRequesterIdAndEventId(userId, eventId)) {
             throw new ConflictException("Нельзя добавить повторный запрос");
         }
 
-        if (event.getInitiator().getId().equals(userId)) {
+        if (eventValidation.getInitiatorId().equals(userId)) {
             throw new ConflictException("Инициатор события не может добавить запрос на участие в своём событии");
         }
 
-        if (!event.getState().equals(EventState.PUBLISHED)) {
+        if (!eventValidation.getPublished()) {
             throw new ConflictException("Нельзя участвовать в неопубликованном событии");
         }
 
-        long confirmedRequests = requestRepository.countConfirmedRequestsByEventId(eventId);
-        if (isParticipantLimitReached(event, confirmedRequests)) {
+        long confirmedRequests = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
+        if (isParticipantLimitReached(eventValidation, confirmedRequests)) {
             throw new ConflictException(LIMIT_REACHED);
         }
     }
 
-    private Request createRequestEntity(Event event, User user) {
-        Request request = requestMapper.toEntity(event, user);
-
-        if (isRequestModerationNotRequired(event) || event.getParticipantLimit() == 0) {
-            request.setStatus(RequestStatus.CONFIRMED);
-            log.debug("Заявка автоматически подтверждена (отключена модерация или лимит 0)");
-        } else {
-            request.setStatus(RequestStatus.PENDING);
-            log.debug("Заявка создана со статусом PENDING");
-        }
-
-        return request;
+    private boolean isRequestModerationNotRequired(EventValidationDto eventValidation) {
+        return eventValidation.getRequestModeration() != null && !eventValidation.getRequestModeration();
     }
 
-    private boolean shouldAutoConfirmRequests(Event event) {
-        return isRequestModerationNotRequired(event) || event.getParticipantLimit() == 0;
+    private boolean isParticipantLimitReached(EventValidationDto eventValidation, long confirmedCount) {
+        Integer limit = eventValidation.getParticipantLimit();
+        return limit != null && limit > 0 && confirmedCount >= limit;
+    }
+
+    private boolean shouldAutoConfirmRequests(EventValidationDto eventValidation) {
+        return isRequestModerationNotRequired(eventValidation) || eventValidation.getParticipantLimit() == 0;
     }
 
     private EventRequestStatusUpdateResult autoConfirmRequests(List<Request> requests) {
@@ -165,9 +204,11 @@ public class RequestServiceImpl implements RequestService {
         return new EventRequestStatusUpdateResult(confirmed, List.of());
     }
 
-    private EventRequestStatusUpdateResult processRequestsWithLimit(Event event, List<Request> requests, RequestStatus targetStatus) {
-        long confirmedRequests = requestRepository.countConfirmedRequestsByEventId(event.getId());
-        long availableSlots = event.getParticipantLimit() - confirmedRequests;
+    private EventRequestStatusUpdateResult processRequestsWithLimit(EventValidationDto eventValidation,
+                                                                    List<Request> requests,
+                                                                    RequestStatus targetStatus) {
+        long confirmedRequests = requestRepository.countByEventIdAndStatus(eventValidation.getEventId(), RequestStatus.CONFIRMED);
+        long availableSlots = eventValidation.getParticipantLimit() - confirmedRequests;
 
         if (targetStatus == RequestStatus.CONFIRMED && availableSlots <= 0) {
             throw new ConflictException(LIMIT_REACHED);
@@ -193,7 +234,8 @@ public class RequestServiceImpl implements RequestService {
 
     private void validateRequestStatus(Request request) {
         if (!request.getStatus().equals(RequestStatus.PENDING)) {
-            throw new ConflictException("Можно изменять только заявки в статусе PENDING" + ". Заявка ID: " + request.getId() + " имеет статус: " + request.getStatus());
+            throw new ConflictException("Можно изменять только заявки в статусе PENDING. " +
+                    "Заявка ID: " + request.getId() + " имеет статус: " + request.getStatus());
         }
     }
 
@@ -216,17 +258,6 @@ public class RequestServiceImpl implements RequestService {
         }
 
         return availableSlots;
-    }
-
-    private boolean isRequestModerationNotRequired(Event event) {
-        return event.getRequestModeration() != null && !event.getRequestModeration();
-    }
-
-    private boolean isParticipantLimitReached(Event event, long confirmedCount) {
-        if (event.getParticipantLimit() == null || event.getParticipantLimit() == 0) {
-            return false;
-        }
-        return confirmedCount >= event.getParticipantLimit();
     }
 
     @Override

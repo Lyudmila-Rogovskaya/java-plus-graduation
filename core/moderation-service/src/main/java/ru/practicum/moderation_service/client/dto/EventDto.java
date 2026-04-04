@@ -1,4 +1,4 @@
-package ru.practicum.moderation_service.client.dto; // новый
+package ru.practicum.moderation_service.client.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EventDto {
+
     private Long id;
     private Long initiatorId;
     private String state;

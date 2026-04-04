@@ -1,8 +1,8 @@
 package ru.practicum.request_service.request.model;
 
+import jakarta.persistence.*;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import ru.practicum.request_service.event.model.Event;
-import ru.practicum.request_service.user.model.User;
 
 import java.time.LocalDateTime;
 
@@ -23,13 +23,11 @@ public class Request {
     @Column(nullable = false)
     private LocalDateTime created;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private Event event;
+    @Column(name = "event_id", nullable = false)
+    private Long eventId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "requester_id", nullable = false)
-    private User requester;
+    @Column(name = "requester_id", nullable = false)
+    private Long requesterId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

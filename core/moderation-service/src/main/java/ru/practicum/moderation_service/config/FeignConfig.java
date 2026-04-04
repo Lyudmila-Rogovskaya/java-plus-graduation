@@ -1,4 +1,4 @@
-package ru.practicum.moderation_service.config; // новый
+package ru.practicum.moderation_service.config;
 
 import feign.Logger;
 import feign.Retryer;

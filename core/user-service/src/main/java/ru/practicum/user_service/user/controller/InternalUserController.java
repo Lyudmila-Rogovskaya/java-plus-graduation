@@ -1,4 +1,4 @@
-package ru.practicum.user_service.user.controller; // новый
+package ru.practicum.user_service.user.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
