@@ -1,4 +1,4 @@
-package ru.practicum.main_service.request.service;
+package ru.practicum.main_service.request.service; // перенесла в реквест-сервис
 
 import ru.practicum.main_service.request.dto.EventRequestStatusUpdateResult;
 import ru.practicum.main_service.request.dto.ParticipationRequestDto;

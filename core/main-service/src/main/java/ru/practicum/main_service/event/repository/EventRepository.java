@@ -1,4 +1,4 @@
-package ru.practicum.main_service.event.repository; // перенесла в эвент-сервис
+package ru.practicum.main_service.event.repository; // /перенесла в эвент-сервис
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;

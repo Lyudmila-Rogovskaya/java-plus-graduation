@@ -1,4 +1,4 @@
-package ru.practicum.main_service.request.dto;
+package ru.practicum.main_service.request.dto; // перенесла в реквест-сервис
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;

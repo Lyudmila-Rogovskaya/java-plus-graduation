@@ -17,4 +17,6 @@ public interface UserService {
 
     User getEntityById(Long id);
 
+    UserDto getUserById(Long userId);
+
 }

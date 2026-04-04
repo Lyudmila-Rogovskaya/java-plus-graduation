@@ -1,4 +1,4 @@
-package ru.practicum.main_service.request.dto.param;
+package ru.practicum.main_service.request.dto.param; // перенесла в реквест-сервис
 
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

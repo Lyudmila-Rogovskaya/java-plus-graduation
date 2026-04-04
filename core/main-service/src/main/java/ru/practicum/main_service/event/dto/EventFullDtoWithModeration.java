@@ -1,4 +1,4 @@
-package ru.practicum.main_service.event.dto; // перенесла в эвент-сервис
+package ru.practicum.main_service.event.dto; // /перенесла в эвент-сервис
 
 import lombok.*;
 import ru.practicum.main_service.category.dto.CategoryDto;

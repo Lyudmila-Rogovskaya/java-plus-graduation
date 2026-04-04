@@ -1,4 +1,4 @@
-package ru.practicum.main_service.request.repository;
+package ru.practicum.main_service.request.repository; // перенесла в реквест-сервис
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

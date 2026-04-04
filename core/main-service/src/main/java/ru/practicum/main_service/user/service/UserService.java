@@ -1,4 +1,4 @@
-package ru.practicum.main_service.user.service; // перенесла в юзер-сервис
+package ru.practicum.main_service.user.service; // /перенесла в юзер-сервис
 
 import org.springframework.data.domain.Pageable;
 import ru.practicum.main_service.user.dto.NewUserRequest;

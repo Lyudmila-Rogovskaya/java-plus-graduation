@@ -1,4 +1,4 @@
-package ru.practicum.main_service.request.service;
+package ru.practicum.main_service.request.service; // перенесла в реквест-сервис
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

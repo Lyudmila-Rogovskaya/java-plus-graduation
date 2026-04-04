@@ -1,4 +1,4 @@
-package ru.practicum.main_service.event.model; // перенесла в эвент-сервис
+package ru.practicum.main_service.event.model; // /перенесла в эвент-сервис
 
 import jakarta.persistence.Embeddable;
 import jakarta.validation.constraints.DecimalMax;

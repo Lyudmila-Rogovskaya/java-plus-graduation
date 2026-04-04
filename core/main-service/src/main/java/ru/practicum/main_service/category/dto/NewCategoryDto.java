@@ -1,4 +1,4 @@
-package ru.practicum.main_service.category.dto; // перенесла в эвент-сервис
+package ru.practicum.main_service.category.dto; // /перенесла в эвент-сервис
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

@@ -1,4 +1,4 @@
-package ru.practicum.main_service.compilation.repository; // перенесла в эвент-сервис
+package ru.practicum.main_service.compilation.repository; // /перенесла в эвент-сервис
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

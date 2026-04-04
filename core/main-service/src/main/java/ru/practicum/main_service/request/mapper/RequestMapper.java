@@ -1,4 +1,4 @@
-package ru.practicum.main_service.request.mapper;
+package ru.practicum.main_service.request.mapper; // перенесла в реквест-сервис
 
 import org.springframework.stereotype.Component;
 import ru.practicum.main_service.event.model.Event;

@@ -1,4 +1,4 @@
-package ru.practicum.main_service.user.admin; // перенесла в юзер-сервис
+package ru.practicum.main_service.user.admin; // /перенесла в юзер-сервис
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

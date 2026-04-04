@@ -1,4 +1,4 @@
-package ru.practicum.main_service.event.dto.param; // перенесла в эвент-сервис
+package ru.practicum.main_service.event.dto.param; // /перенесла в эвент-сервис
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

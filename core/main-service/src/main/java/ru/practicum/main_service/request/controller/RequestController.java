@@ -1,4 +1,4 @@
-package ru.practicum.main_service.request.controller;
+package ru.practicum.main_service.request.controller; // перенесла в реквест-сервис
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
