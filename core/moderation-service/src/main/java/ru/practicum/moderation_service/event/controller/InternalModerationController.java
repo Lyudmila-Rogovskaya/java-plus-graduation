@@ -28,4 +28,10 @@ public class InternalModerationController {
         return commentService.createComment(request.getEventId(), request.getAdminId(), request.getCommentText());
     }
 
+    @DeleteMapping("/{eventId}")
+    public void deleteCommentsByEventId(@PathVariable Long eventId) {
+        log.info("Internal request: delete comments for eventId: {}", eventId);
+        commentService.deleteCommentsByEventId(eventId);
+    }
+
 }
