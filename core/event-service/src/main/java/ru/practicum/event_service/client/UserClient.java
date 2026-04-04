@@ -8,7 +8,7 @@ import ru.practicum.event_service.client.dto.UserDto;
 @FeignClient(name = "user-service")
 public interface UserClient {
 
-    @GetMapping("/api/v1/users/{userId}")
+    @GetMapping("/internal/users/{userId}")
     UserDto getUser(@PathVariable("userId") Long userId);
 
 }
