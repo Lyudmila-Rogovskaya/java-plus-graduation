@@ -1,4 +1,4 @@
-package ru.practicum.main_service.category.mapper;
+package ru.practicum.main_service.category.mapper; // перенесла в эвент-сервис
 
 import org.mapstruct.Named;
 import org.springframework.stereotype.Component;

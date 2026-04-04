@@ -1,4 +1,4 @@
-package ru.practicum.main_service.user.mapper;
+package ru.practicum.main_service.user.mapper; // перенесла в юзер-сервис
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

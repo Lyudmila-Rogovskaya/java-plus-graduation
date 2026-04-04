@@ -1,4 +1,4 @@
-package ru.practicum.main_service.compilation.mapper;
+package ru.practicum.main_service.compilation.mapper; // перенесла в эвент-сервис
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

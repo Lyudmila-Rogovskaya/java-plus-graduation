@@ -1,4 +1,4 @@
-package ru.practicum.main_service.user.repository;
+package ru.practicum.main_service.user.repository; // перенесла в юзер-сервис
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

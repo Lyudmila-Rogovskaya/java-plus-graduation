@@ -1,4 +1,4 @@
-package ru.practicum.main_service.compilation.dto;
+package ru.practicum.main_service.compilation.dto; // перенесла в эвент-сервис
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;

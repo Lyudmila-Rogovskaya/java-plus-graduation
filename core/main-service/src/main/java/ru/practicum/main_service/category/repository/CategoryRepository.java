@@ -1,4 +1,4 @@
-package ru.practicum.main_service.category.repository;
+package ru.practicum.main_service.category.repository; // перенесла в эвент-сервис
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

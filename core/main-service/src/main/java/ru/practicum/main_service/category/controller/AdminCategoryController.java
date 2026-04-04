@@ -1,4 +1,4 @@
-package ru.practicum.main_service.category.controller;
+package ru.practicum.main_service.category.controller; // перенесла в эвент-сервис
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;

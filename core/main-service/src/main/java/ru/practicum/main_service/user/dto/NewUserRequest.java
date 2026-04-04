@@ -1,4 +1,4 @@
-package ru.practicum.main_service.user.dto;
+package ru.practicum.main_service.user.dto; // перенесла в юзер-сервис
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

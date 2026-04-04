@@ -1,4 +1,4 @@
-package ru.practicum.main_service.event.dto.param;
+package ru.practicum.main_service.event.dto.param; // перенесла в эвент-сервис
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Future;

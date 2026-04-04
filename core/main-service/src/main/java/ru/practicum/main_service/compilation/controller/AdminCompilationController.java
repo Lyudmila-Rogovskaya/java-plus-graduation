@@ -1,4 +1,4 @@
-package ru.practicum.main_service.compilation.controller;
+package ru.practicum.main_service.compilation.controller; // перенесла в эвент-сервис
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

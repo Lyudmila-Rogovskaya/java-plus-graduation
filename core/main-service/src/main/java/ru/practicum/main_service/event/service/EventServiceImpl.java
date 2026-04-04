@@ -1,4 +1,4 @@
-package ru.practicum.main_service.event.service;
+package ru.practicum.main_service.event.service; // перенесла в эвент-сервис
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

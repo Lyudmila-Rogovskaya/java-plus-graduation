@@ -1,4 +1,4 @@
-package ru.practicum.main_service.compilation.model;
+package ru.practicum.main_service.compilation.model; // перенесла в эвент-сервис
 
 import jakarta.persistence.*;
 import lombok.*;

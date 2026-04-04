@@ -1,4 +1,4 @@
-package ru.practicum.main_service.event.repository;
+package ru.practicum.main_service.event.repository; // перенесла в эвент-сервис
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;

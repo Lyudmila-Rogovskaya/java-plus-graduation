@@ -1,4 +1,4 @@
-package ru.practicum.main_service.compilation.service;
+package ru.practicum.main_service.compilation.service; // перенесла в эвент-сервис
 
 import ru.practicum.main_service.compilation.dto.CompilationDto;
 import ru.practicum.main_service.compilation.dto.param.GetCompilationsDto;

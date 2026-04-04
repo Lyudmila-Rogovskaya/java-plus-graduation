@@ -1,4 +1,4 @@
-package ru.practicum.main_service.compilation.dto.param;
+package ru.practicum.main_service.compilation.dto.param; // перенесла в эвент-сервис
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

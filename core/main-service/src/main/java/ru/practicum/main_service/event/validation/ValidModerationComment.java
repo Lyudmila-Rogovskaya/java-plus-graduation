@@ -1,4 +1,4 @@
-package ru.practicum.main_service.event.validation;
+package ru.practicum.main_service.event.validation; // перенесла в эвент-сервис
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;

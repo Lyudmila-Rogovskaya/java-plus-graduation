@@ -1,4 +1,4 @@
-package ru.practicum.main_service.user.model;
+package ru.practicum.main_service.user.model; // перенесла в юзер-сервис
 
 import jakarta.persistence.*;
 import lombok.*;

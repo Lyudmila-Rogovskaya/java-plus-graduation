@@ -1,4 +1,4 @@
-package ru.practicum.main_service.exception;
+package ru.practicum.main_service.exception; // перенесла в юзер-сервис
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

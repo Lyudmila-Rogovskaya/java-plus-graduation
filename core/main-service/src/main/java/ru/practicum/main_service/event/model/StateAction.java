@@ -1,4 +1,4 @@
-package ru.practicum.main_service.event.model;
+package ru.practicum.main_service.event.model; // перенесла в эвент-сервис
 
 public enum StateAction {
     SEND_TO_REVIEW, CANCEL_REVIEW, PUBLISH_EVENT, REJECT_EVENT;

@@ -1,4 +1,4 @@
-package ru.practicum.main_service.event.dto.param;
+package ru.practicum.main_service.event.dto.param; // перенесла в эвент-сервис
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;

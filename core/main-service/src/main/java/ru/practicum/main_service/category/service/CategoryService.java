@@ -1,4 +1,4 @@
-package ru.practicum.main_service.category.service;
+package ru.practicum.main_service.category.service; // перенесла в эвент-сервис
 
 import ru.practicum.main_service.category.dto.CategoryDto;
 import ru.practicum.main_service.category.dto.NewCategoryDto;

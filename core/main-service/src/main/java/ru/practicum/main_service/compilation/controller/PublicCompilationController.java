@@ -1,4 +1,4 @@
-package ru.practicum.main_service.compilation.controller;
+package ru.practicum.main_service.compilation.controller; // перенесла в эвент-сервис
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

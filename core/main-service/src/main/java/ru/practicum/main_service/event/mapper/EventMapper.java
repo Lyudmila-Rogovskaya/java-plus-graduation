@@ -1,4 +1,4 @@
-package ru.practicum.main_service.event.mapper;
+package ru.practicum.main_service.event.mapper; // перенесла в эвент-сервис
 
 import org.mapstruct.*;
 import org.springframework.beans.factory.annotation.Autowired;
