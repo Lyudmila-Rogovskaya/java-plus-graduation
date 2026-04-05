@@ -22,3 +22,11 @@ eureka:
   client:
     serviceUrl:
       defaultZone: http://discovery-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.int}
+
+logging:
+  level:
+    ru.practicum: DEBUG
+    org.springframework: INFO
