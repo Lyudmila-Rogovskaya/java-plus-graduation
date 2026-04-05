@@ -265,7 +265,11 @@ public class EventServiceImpl implements EventService {
                     break;
                 case SEND_TO_REVIEW:
                     if (event.getState() == EventState.CANCELED) {
-                        moderationCommentClient.deleteCommentsByEventId(eventId);
+                        try {
+                            moderationCommentClient.deleteCommentsByEventId(eventId);
+                        } catch (Exception e) {
+                            log.error("Failed to delete moderation comments for event {}: {}", eventId, e.getMessage());
+                        }
                     }
                     event.setState(EventState.PENDING);
                     break;
@@ -513,7 +517,11 @@ public class EventServiceImpl implements EventService {
 
                     if (moderationComment != null && !moderationComment.trim().isEmpty()) {
                         CreateCommentRequest request = new CreateCommentRequest(eventId, adminId, moderationComment);
-                        moderationCommentClient.createComment(request);
+                        try {
+                            moderationCommentClient.createComment(request);
+                        } catch (Exception e) {
+                            log.error("Failed to create moderation comment for event {}: {}", eventId, e.getMessage());
+                        }
                     }
                     break;
 
@@ -527,7 +535,11 @@ public class EventServiceImpl implements EventService {
                         throw new ValidationException("При отклонении события необходимо указать причину");
                     }
                     CreateCommentRequest request = new CreateCommentRequest(eventId, adminId, moderationComment.trim());
-                    moderationCommentClient.createComment(request);
+                    try {
+                        moderationCommentClient.createComment(request);
+                    } catch (Exception e) {
+                        log.error("Failed to create moderation comment for event {}: {}", eventId, e.getMessage());
+                    }
                     break;
             }
         }
@@ -535,7 +547,12 @@ public class EventServiceImpl implements EventService {
         Event updatedEvent = eventRepository.save(event);
         log.info("Администратором обновлено событие с id: {} с комментарием модерации", eventId);
 
-        List<ModerationCommentDto> comments = moderationCommentClient.getCommentsByEventIds(List.of(eventId));
+        List<ModerationCommentDto> comments = Collections.emptyList();
+        try {
+            comments = moderationCommentClient.getCommentsByEventIds(List.of(eventId));
+        } catch (Exception e) {
+            log.error("Failed to get moderation comments for event {}: {}", eventId, e.getMessage());
+        }
 
         Long views = getEventViews(updatedEvent);
         Long eventRequests = getEventRequests(updatedEvent);
@@ -587,12 +604,17 @@ public class EventServiceImpl implements EventService {
         if (eventIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        List<ModerationCommentDto> allComments = moderationCommentClient.getCommentsByEventIds(eventIds);
-        return allComments.stream()
-                .collect(Collectors.groupingBy(
-                        ModerationCommentDto::getEventId,
-                        Collectors.toList()
-                ));
+        try {
+            List<ModerationCommentDto> allComments = moderationCommentClient.getCommentsByEventIds(eventIds);
+            return allComments.stream()
+                    .collect(Collectors.groupingBy(
+                            ModerationCommentDto::getEventId,
+                            Collectors.toList()
+                    ));
+        } catch (Exception e) {
+            log.error("Failed to get moderation comments for eventIds {}: {}", eventIds, e.getMessage());
+            return Collections.emptyMap();
+        }
     }
 
     @Override
