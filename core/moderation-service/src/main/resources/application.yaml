@@ -2,15 +2,15 @@ spring:
   application:
     name: moderation-service
   config:
-    import: "optional:configserver:"
+    import: "configserver:"
   cloud:
     config:
+      fail-fast: true
       discovery:
         enabled: true
         serviceId: config-server
-      fail-fast: true
       retry:
-        maxAttempts: 15
+        maxAttempts: 20
         initialInterval: 2000
         multiplier: 1.5
         maxInterval: 10000
@@ -29,4 +29,4 @@ eureka:
 logging:
   level:
     ru.practicum: DEBUG
-    org.springframework: INFO
+    org.springframework.cloud: INFO
