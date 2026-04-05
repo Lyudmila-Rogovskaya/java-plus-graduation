@@ -10,8 +10,10 @@ spring:
         serviceId: config-server
       fail-fast: true
       retry:
-        useRandomPolicy: true
-        max-interval: 6000
+        maxAttempts: 15
+        initialInterval: 2000
+        multiplier: 1.5
+        maxInterval: 10000
 
 server:
   port: 8080

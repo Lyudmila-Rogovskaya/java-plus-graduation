@@ -46,4 +46,5 @@ public class ErrorHandler {
         log.warn("Ошибка валидации бизнес-логики: {}", e.getMessage());
         return new ErrorResponse("Некорректные параметры запроса", e.getMessage(), "BAD_REQUEST", LocalDateTime.now());
     }
+
 }

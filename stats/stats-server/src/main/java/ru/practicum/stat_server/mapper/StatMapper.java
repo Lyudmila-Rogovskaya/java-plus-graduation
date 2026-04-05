@@ -13,4 +13,5 @@ public interface StatMapper {
 
     @Mapping(target = "timestamp", source = "timestamp", dateFormat = "yyyy-MM-dd HH:mm:ss")
     EndpointHitDto toDto(EndpointHit entity);
+
 }

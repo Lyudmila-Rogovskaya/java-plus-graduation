@@ -29,4 +29,5 @@ public class StatController {
         log.info("Запрос на получение статистики: start={}, end={}, uris={}, unique={}", start, end, uris, unique);
         return statService.getStats(start, end, uris, unique);
     }
+
 }

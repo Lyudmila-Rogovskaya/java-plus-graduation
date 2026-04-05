@@ -27,4 +27,5 @@ public interface StatRepository extends JpaRepository<EndpointHit, Long> {
             GROUP BY h.app, h.uri
             ORDER BY hits DESC""")
     List<ViewStatsDto> getUniqueStats(LocalDateTime start, LocalDateTime end, List<String> uris);
+
 }
