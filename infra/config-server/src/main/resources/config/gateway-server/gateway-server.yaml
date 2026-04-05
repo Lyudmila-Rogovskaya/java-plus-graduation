@@ -34,3 +34,25 @@ spring:
           uri: lb://event-service
           predicates:
             - Path=/events/**,/categories/**,/compilations/**
+
+  config:
+    import: "optional:configserver:"
+    cloud:
+      config:
+        discovery:
+          enabled: true
+          service-id: config-server
+        fail-fast: true
+        retry:
+          max-attempts: 15
+          initial-interval: 2000
+          multiplier: 1.5
+          max-interval: 10000
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.int}
