@@ -10,4 +10,5 @@ public interface StatClient {
     void hit(EndpointHitDto endpointHitDto);
 
     List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end, List<String> uris, Boolean unique);
+
 }

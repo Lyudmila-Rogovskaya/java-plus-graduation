@@ -1,0 +1,84 @@
+package ru.practicum.event_service.event.mapper;
+
+import org.mapstruct.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import ru.practicum.event_service.category.mapper.CategoryMapper;
+import ru.practicum.event_service.category.model.Category;
+import ru.practicum.event_service.category.service.CategoryService;
+import ru.practicum.event_service.event.dto.EventFullDto;
+import ru.practicum.event_service.event.dto.EventShortDto;
+import ru.practicum.event_service.event.dto.NewEventDto;
+import ru.practicum.event_service.event.dto.param.UpdateEventRequest;
+import ru.practicum.event_service.event.model.Event;
+import ru.practicum.event_service.event.model.EventState;
+
+import java.time.LocalDateTime;
+
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING,
+        uses = {CategoryMapper.class}, imports = {LocalDateTime.class, EventState.class})
+public abstract class EventMapper {
+
+    @Autowired
+    protected CategoryService categoryService;
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE, ignoreByDefault = true)
+    @Mapping(target = "title", source = "title")
+    @Mapping(target = "annotation", source = "annotation")
+    @Mapping(target = "description", source = "description")
+    @Mapping(target = "eventDate", source = "eventDate")
+    @Mapping(target = "location", source = "location")
+    @Mapping(target = "paid", source = "paid")
+    @Mapping(target = "participantLimit", source = "participantLimit")
+    @Mapping(target = "requestModeration", source = "requestModeration")
+    @Mapping(target = "category", source = "category", qualifiedByName = "mapCategoryIdToCategory")
+    public abstract void updateEventFromRequest(UpdateEventRequest request, @MappingTarget Event event);
+
+    @Named("mapCategoryIdToCategory")
+    protected Category mapCategoryIdToCategory(Long categoryId) {
+        if (categoryId == null) {
+            return null;
+        }
+        return categoryService.getEntityById(categoryId);
+    }
+
+    @Mapping(target = "confirmedRequests", ignore = true)
+    @Mapping(target = "views", ignore = true)
+    @Mapping(target = "initiator", ignore = true)
+    public abstract EventFullDto toEventFullDto(Event event);
+
+    public EventFullDto toEventFullDto(Event event, Long confirmedRequests, Long views) {
+        EventFullDto dto = toEventFullDto(event);
+        if (confirmedRequests != null) {
+            dto.setConfirmedRequests(confirmedRequests);
+        }
+        if (views != null) {
+            dto.setViews(views);
+        }
+        return dto;
+    }
+
+    @Mapping(target = "confirmedRequests", ignore = true)
+    @Mapping(target = "views", ignore = true)
+    @Mapping(target = "initiator", ignore = true)
+    public abstract EventShortDto toEventShortDto(Event event);
+
+    public EventShortDto toEventShortDto(Event event, Long confirmedRequests, Long views) {
+        EventShortDto dto = toEventShortDto(event);
+        if (confirmedRequests != null) {
+            dto.setConfirmedRequests(confirmedRequests);
+        }
+        if (views != null) {
+            dto.setViews(views);
+        }
+        return dto;
+    }
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdOn", expression = "java(LocalDateTime.now())")
+    @Mapping(target = "state", constant = "PENDING")
+    @Mapping(target = "category", source = "category")
+    @Mapping(target = "initiatorId", source = "initiatorId")
+    @Mapping(target = "publishedOn", ignore = true)
+    public abstract Event toNewEvent(NewEventDto newEventDto, Category category, Long initiatorId);
+
+}

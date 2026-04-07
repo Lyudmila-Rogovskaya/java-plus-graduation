@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: moderation-service
+  config:
+    import: "optional:configserver:"
+  cloud:
+    config:
+      fail-fast: true
+      discovery:
+        enabled: true
+        serviceId: config-server
+      retry:
+        maxAttempts: 20
+        initialInterval: 2000
+        multiplier: 1.5
+        maxInterval: 10000
+
+server:
+  port: 0
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://discovery-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.int}
+
+logging:
+  level:
+    ru.practicum: DEBUG
+    org.springframework.cloud: INFO

@@ -11,9 +11,12 @@ spring:
       server:
         native:
           searchLocations:
-            - classpath:/config/main-service/
             - classpath:/config/stats-server/
             - classpath:/config/gateway-server/
+            - classpath:/config/user-service/
+            - classpath:/config/event-service/
+            - classpath:/config/request-service/
+            - classpath:/config/moderation-service/
 
 eureka:
   client:

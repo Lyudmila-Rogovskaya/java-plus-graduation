@@ -18,6 +18,11 @@ services:
     depends_on:
       discovery-server:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - ewm-network
 
@@ -27,25 +32,70 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
     depends_on:
       stats-db:
-        condition: service_started
+        condition: service_healthy
       discovery-server:
         condition: service_healthy
     networks:
       - ewm-network
 
-  ewm-service:
-    build: ./core/main-service
+  user-service:
+    build: ./core/user-service
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
     depends_on:
-      ewm-db:
-        condition: service_started
-      stats-server:
-        condition: service_started
       discovery-server:
         condition: service_healthy
       config-server:
         condition: service_started
+      user-db:
+        condition: service_healthy
+    networks:
+      - ewm-network
+
+  event-service:
+    build: ./core/event-service
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      event-db:
+        condition: service_healthy
+    networks:
+      - ewm-network
+
+  request-service:
+    build: ./core/request-service
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      request-db:
+        condition: service_healthy
+    networks:
+      - ewm-network
+
+  moderation-service:
+    build: ./core/moderation-service
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      moderation-db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - ewm-network
 
@@ -71,6 +121,11 @@ services:
       POSTGRES_PASSWORD: password
     networks:
       - ewm-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d ewm" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   stats-db:
     image: postgres:16.1
@@ -80,6 +135,67 @@ services:
       POSTGRES_PASSWORD: password
     networks:
       - ewm-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d stats" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-db:
+    image: postgres:16.1
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    networks:
+      - ewm-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d users" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  event-db:
+    image: postgres:16.1
+    environment:
+      POSTGRES_DB: events
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    networks:
+      - ewm-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d events" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  request-db:
+    image: postgres:16.1
+    environment:
+      POSTGRES_DB: requests
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    networks:
+      - ewm-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d requests" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  moderation-db:
+    image: postgres:16.1
+    environment:
+      POSTGRES_DB: moderation
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    networks:
+      - ewm-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d moderation" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   ewm-network:
