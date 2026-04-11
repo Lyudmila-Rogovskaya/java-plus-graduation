@@ -13,4 +13,8 @@ public interface RequestClient {
     @GetMapping("/internal/requests/count")
     List<ConfirmedRequestsDto> getConfirmedRequests(@RequestParam("eventIds") List<Long> eventIds);
 
+    @GetMapping("/internal/requests/visited")
+    boolean hasUserVisitedEvent(@RequestParam("userId") Long userId,
+                                @RequestParam("eventId") Long eventId);
+
 }

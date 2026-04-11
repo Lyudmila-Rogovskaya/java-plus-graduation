@@ -26,18 +26,6 @@ services:
     networks:
       - ewm-network
 
-  stats-server:
-    build: ./stats/stats-server
-    environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-    depends_on:
-      stats-db:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
-    networks:
-      - ewm-network
-
   user-service:
     build: ./core/user-service
     environment:
@@ -141,6 +129,58 @@ services:
       timeout: 5s
       retries: 5
 
+  kafka:
+    image: confluentinc/confluent-local:7.4.3
+    hostname: kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "9101:9101"
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      CLUSTER_ID: 'K0EA9p0yEe6MkAAAAkKsEg'
+    networks:
+      - ewm-network
+
+  kafka-init-topics:
+    image: confluentinc/confluent-local:7.4.3
+    container_name: kafka-init-topics
+    depends_on:
+      - kafka
+    command: >
+      bash -c "
+        echo 'Waiting for Kafka to be ready...' &&
+        sleep 30 &&
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 \
+          --topic stats.user-actions.v1 --partitions 1 --replication-factor 1 &&
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 \
+          --topic stats.events-similarity.v1 --partitions 1 --replication-factor 1
+      "
+    init: true
+    networks:
+      - ewm-network
+
+  analyzer-db:
+    image: postgres:16.1
+    environment:
+      POSTGRES_DB: analyzer
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    networks:
+      - ewm-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d analyzer" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   user-db:
     image: postgres:16.1
     environment:
@@ -196,6 +236,56 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  collector:
+    build: ./stats/collector
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_CLOUD_CONFIG_DISCOVERY_ENABLED=true
+      - SPRING_CLOUD_CONFIG_DISCOVERY_SERVICEID=config-server
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      kafka:
+        condition: service_started
+    networks:
+      - ewm-network
+
+  aggregator:
+    build: ./stats/aggregator
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_CLOUD_CONFIG_DISCOVERY_ENABLED=true
+      - SPRING_CLOUD_CONFIG_DISCOVERY_SERVICEID=config-server
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      kafka:
+        condition: service_started
+    networks:
+      - ewm-network
+
+  analyzer:
+    build: ./stats/analyzer
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_CLOUD_CONFIG_DISCOVERY_ENABLED=true
+      - SPRING_CLOUD_CONFIG_DISCOVERY_SERVICEID=config-server
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_started
+      kafka:
+        condition: service_started
+      analyzer-db:
+        condition: service_healthy
+    networks:
+      - ewm-network
 
 networks:
   ewm-network:

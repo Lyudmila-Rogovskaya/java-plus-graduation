@@ -42,34 +42,26 @@ public abstract class EventMapper {
     }
 
     @Mapping(target = "confirmedRequests", ignore = true)
-    @Mapping(target = "views", ignore = true)
+    @Mapping(target = "rating", ignore = true)
     @Mapping(target = "initiator", ignore = true)
     public abstract EventFullDto toEventFullDto(Event event);
 
-    public EventFullDto toEventFullDto(Event event, Long confirmedRequests, Long views) {
+    public EventFullDto toEventFullDto(Event event, Long confirmedRequests, Double rating) {
         EventFullDto dto = toEventFullDto(event);
-        if (confirmedRequests != null) {
-            dto.setConfirmedRequests(confirmedRequests);
-        }
-        if (views != null) {
-            dto.setViews(views);
-        }
+        dto.setConfirmedRequests(confirmedRequests);
+        dto.setRating(rating);
         return dto;
     }
 
     @Mapping(target = "confirmedRequests", ignore = true)
-    @Mapping(target = "views", ignore = true)
+    @Mapping(target = "rating", ignore = true)
     @Mapping(target = "initiator", ignore = true)
     public abstract EventShortDto toEventShortDto(Event event);
 
-    public EventShortDto toEventShortDto(Event event, Long confirmedRequests, Long views) {
+    public EventShortDto toEventShortDto(Event event, Long confirmedRequests, Double rating) {
         EventShortDto dto = toEventShortDto(event);
-        if (confirmedRequests != null) {
-            dto.setConfirmedRequests(confirmedRequests);
-        }
-        if (views != null) {
-            dto.setViews(views);
-        }
+        dto.setConfirmedRequests(confirmedRequests);
+        dto.setRating(rating);
         return dto;
     }
 
@@ -79,6 +71,7 @@ public abstract class EventMapper {
     @Mapping(target = "category", source = "category")
     @Mapping(target = "initiatorId", source = "initiatorId")
     @Mapping(target = "publishedOn", ignore = true)
+    @Mapping(target = "rating", constant = "0.0")
     public abstract Event toNewEvent(NewEventDto newEventDto, Category category, Long initiatorId);
 
 }

@@ -28,14 +28,15 @@ import ru.practicum.event_service.event.repository.EventRepository;
 import ru.practicum.event_service.exception.ConflictException;
 import ru.practicum.event_service.exception.NotFoundException;
 import ru.practicum.event_service.exception.ValidationException;
-import ru.practicum.stat_dto.EndpointHitDto;
-import ru.practicum.stat_dto.ViewStatsDto;
-import ru.practicum.stats_client.StatClient;
+import ru.practicum.ewm.stats.proto.ActionTypeProto;
+import ru.practicum.ewm.stats.proto.RecommendedEventProto;
+import ru.practicum.stats_client.AnalyzerGrpcClient;
+import ru.practicum.stats_client.CollectorGrpcClient;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -46,10 +47,11 @@ public class EventServiceImpl implements EventService {
     private final EventRepository eventRepository;
     private final CategoryService categoryService;
     private final EventMapper eventMapper;
-    private final StatClient statClient;
     private final RequestClient requestClient;
     private final ModerationCommentClient moderationCommentClient;
     private final UserClient userClient;
+    private final CollectorGrpcClient collectorGrpcClient;
+    private final AnalyzerGrpcClient analyzerGrpcClient;
 
     @Value("${event.moderation.page-size:10}")
     private int defaultModerationPageSize;
@@ -74,49 +76,13 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toMap(ConfirmedRequestsDto::getEventId, ConfirmedRequestsDto::getCount));
     }
 
-    private Map<Long, Long> getEventsViewsBatch(List<Event> events) {
-        log.debug("Получение статистики просмотров для {} событий", events.size());
-        List<String> uris = events.stream().map(event -> "/events/" + event.getId()).collect(Collectors.toList());
-        log.trace("Сформировано {} URI для запроса статистики", uris.size());
-        LocalDateTime earliestCreated = events.stream()
-                .map(Event::getCreatedOn)
-                .min(LocalDateTime::compareTo)
-                .orElse(LocalDateTime.now().minusYears(1));
-        log.trace("Диапазон запроса статистики: с {} по {}", earliestCreated, LocalDateTime.now());
-        List<ViewStatsDto> stats = statClient.getStats(earliestCreated, LocalDateTime.now(), uris, false);
-        log.debug("Получено {} записей статистики от внешнего сервиса", stats.size());
-        return stats.stream().collect(Collectors.toMap(
-                stat -> extractEventIdFromUri(stat.getUri()),
-                ViewStatsDto::getHits,
-                (existing, replacement) -> existing));
-    }
-
-    private Long extractEventIdFromUri(String uri) {
-        String[] parts = uri.split("/");
-        return Long.parseLong(parts[parts.length - 1]);
-    }
-
     private Long getEventRequests(Event event) {
         List<ConfirmedRequestsDto> result = requestClient.getConfirmedRequests(List.of(event.getId()));
-        if (result.isEmpty()) {
-            return 0L;
-        }
-        return result.get(0).getCount();
+        return result.isEmpty() ? 0L : result.get(0).getCount();
     }
 
-    private Long getEventViews(Event event) {
-        String uri = "/events/" + event.getId();
-        List<ViewStatsDto> stats = statClient.getStats(event.getCreatedOn(), LocalDateTime.now(), List.of(uri), true);
-        Long views = 0L;
-        if (!stats.isEmpty()) {
-            for (ViewStatsDto stat : stats) {
-                if (stat.getUri().equals(uri)) {
-                    views = stat.getHits();
-                    break;
-                }
-            }
-        }
-        return views;
+    private Double getEventRating(Event event) {
+        return event.getRating() != null ? event.getRating() : 0.0;
     }
 
     private UserDto getUserById(Long userId) {
@@ -129,21 +95,6 @@ public class EventServiceImpl implements EventService {
 
     private void updateEventFields(Event event, UpdateEventRequest updateEvent) {
         eventMapper.updateEventFromRequest(updateEvent, event);
-    }
-
-    private void sendStats(HttpServletRequest request) {
-        final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        try {
-            EndpointHitDto hitDto = EndpointHitDto.builder()
-                    .app("ewm-main-service")
-                    .uri(request.getRequestURI())
-                    .ip(request.getRemoteAddr())
-                    .timestamp(LocalDateTime.now().format(FORMATTER))
-                    .build();
-            statClient.hit(hitDto);
-        } catch (Exception e) {
-            log.error("Ошибка при отправке статистики: {}", e.getMessage());
-        }
     }
 
     private void timeRangeValidation(LocalDateTime rangeStart, LocalDateTime rangeEnd) {
@@ -170,18 +121,16 @@ public class EventServiceImpl implements EventService {
             return Collections.emptyList();
         }
         Map<Long, Long> confirmedRequestsMap = getConfirmedRequestsBatch(events);
-        Map<Long, Long> viewsMap = getEventsViewsBatch(events);
-        log.trace("Статистика собрана: confirmedRequests={} записей, views={} записей",
-                confirmedRequestsMap.size(), viewsMap.size());
+        log.trace("Статистика подтвержденных запросов собрана: {} записей", confirmedRequestsMap.size());
 
         UserShortDto initiator = getUserShortDto(userId);
 
         List<EventShortDto> result = events.stream().map(event -> {
             Long confirmed = confirmedRequestsMap.getOrDefault(event.getId(), 0L);
-            Long views = viewsMap.getOrDefault(event.getId(), 0L);
-            log.trace("Событие пользователя id={}: confirmedRequests={}, views={}",
-                    event.getId(), confirmed, views);
-            EventShortDto dto = eventMapper.toEventShortDto(event, confirmed, views);
+            Double rating = getEventRating(event);
+            log.trace("Событие пользователя id={}: confirmedRequests={}, rating={}",
+                    event.getId(), confirmed, rating);
+            EventShortDto dto = eventMapper.toEventShortDto(event, confirmed, rating);
             dto.setInitiator(initiator);
             return dto;
         }).collect(Collectors.toList());
@@ -204,6 +153,7 @@ public class EventServiceImpl implements EventService {
         }
 
         Event event = eventMapper.toNewEvent(newEventDto, category, userId);
+        event.setRating(0.0);
         Event savedEvent = eventRepository.save(event);
         log.info("Создано новое событие с id: {}", savedEvent.getId());
 
@@ -219,13 +169,14 @@ public class EventServiceImpl implements EventService {
         getUserById(userId);
         Event event = eventRepository.findByIdAndInitiatorId(eventId, userId).orElseThrow(() ->
                 new NotFoundException("Событие с id=" + eventId + " не найдено"));
-        Long views = getEventViews(event);
         Long eventRequests = getEventRequests(event);
-        EventFullDto dto = eventMapper.toEventFullDto(event, eventRequests, views);
+        Double rating = getEventRating(event);
+        EventFullDto dto = eventMapper.toEventFullDto(event, eventRequests, rating);
         dto.setInitiator(getUserShortDto(userId));
         return dto;
     }
 
+    @Override
     @Transactional
     public EventFullDto updateEventByUser(EventByUserRequest request, UpdateEventUserRequest updateEvent) {
         Long userId = request.getUserId();
@@ -257,7 +208,7 @@ public class EventServiceImpl implements EventService {
         StateAction state = updateEvent.getStateAction();
         if (state != null) {
             if (!state.isUserStateAction()) {
-                throw new ValidationException("Передано не корректное действие");
+                throw new ValidationException("Передано некорректное действие");
             }
             switch (state) {
                 case CANCEL_REVIEW:
@@ -268,7 +219,7 @@ public class EventServiceImpl implements EventService {
                         try {
                             moderationCommentClient.deleteCommentsByEventId(eventId);
                         } catch (Exception e) {
-                            log.error("Failed to delete moderation comments for event {}: {}", eventId, e.getMessage());
+                            log.error("Не удалось удалить комментарии модерации для события {}: {}", eventId, e.getMessage());
                         }
                     }
                     event.setState(EventState.PENDING);
@@ -278,9 +229,9 @@ public class EventServiceImpl implements EventService {
 
         Event updatedEvent = eventRepository.save(event);
         log.info("Обновлено событие с id: {}", eventId);
-        Long views = getEventViews(updatedEvent);
         Long eventRequests = getEventRequests(updatedEvent);
-        EventFullDto dto = eventMapper.toEventFullDto(updatedEvent, eventRequests, views);
+        Double rating = getEventRating(updatedEvent);
+        EventFullDto dto = eventMapper.toEventFullDto(updatedEvent, eventRequests, rating);
         dto.setInitiator(getUserShortDto(userId));
         return dto;
     }
@@ -325,9 +276,9 @@ public class EventServiceImpl implements EventService {
 
         Event updatedEvent = eventRepository.save(event);
         log.info("Администратором обновлено событие с id: {}", eventId);
-        Long views = getEventViews(updatedEvent);
-        Long eventRequests = getEventRequests(event);
-        EventFullDto dto = eventMapper.toEventFullDto(updatedEvent, eventRequests, views);
+        Long eventRequests = getEventRequests(updatedEvent);
+        Double rating = getEventRating(updatedEvent);
+        EventFullDto dto = eventMapper.toEventFullDto(updatedEvent, eventRequests, rating);
         dto.setInitiator(getUserShortDto(event.getInitiatorId()));
         return dto;
     }
@@ -355,9 +306,7 @@ public class EventServiceImpl implements EventService {
             return Collections.emptyList();
         }
         Map<Long, Long> confirmedRequestsMap = getConfirmedRequestsBatch(events);
-        Map<Long, Long> viewsMap = getEventsViewsBatch(events);
-        log.trace("Статистика собрана: requests={} записей, views={} записей",
-                confirmedRequestsMap.size(), viewsMap.size());
+        log.trace("Статистика подтвержденных запросов собрана: {} записей", confirmedRequestsMap.size());
 
         Set<Long> userIds = events.stream().map(Event::getInitiatorId).collect(Collectors.toSet());
         Map<Long, UserShortDto> userCache = userIds.stream()
@@ -365,8 +314,8 @@ public class EventServiceImpl implements EventService {
 
         return events.stream().map(event -> {
             Long confirmed = confirmedRequestsMap.getOrDefault(event.getId(), 0L);
-            Long views = viewsMap.getOrDefault(event.getId(), 0L);
-            EventFullDto dto = eventMapper.toEventFullDto(event, confirmed, views);
+            Double rating = getEventRating(event);
+            EventFullDto dto = eventMapper.toEventFullDto(event, confirmed, rating);
             dto.setInitiator(userCache.get(event.getInitiatorId()));
             return dto;
         }).collect(Collectors.toList());
@@ -385,17 +334,15 @@ public class EventServiceImpl implements EventService {
         Boolean paid = params.getPaid();
         Boolean onlyAvailable = params.getOnlyAvailable();
         List<Long> categories = params.getCategories();
-        boolean sortedByViews = "views".equals(params.getSort());
+        boolean sortedByRating = "rating".equalsIgnoreCase(params.getSort());
         List<EventShortDto> result;
-        if (sortedByViews) {
-            log.debug("Сортировка по просмотрам (in-memory)");
-            result = findSortedByViews(from, size, text, categories, paid, rangeStart, rangeEnd, onlyAvailable);
+        if (sortedByRating) {
+            log.debug("Сортировка по рейтингу (in-memory)");
+            result = findSortedByRating(from, size, text, categories, paid, rangeStart, rangeEnd, onlyAvailable);
         } else {
             log.debug("Сортировка по дате (DB-level)");
             result = findSortedByDate(from, size, text, categories, paid, rangeStart, rangeEnd, onlyAvailable);
         }
-        HttpServletRequest request = params.getRequest();
-        sendStats(request);
         log.debug("Возвращено {} событий", result.size());
         return result;
     }
@@ -415,12 +362,12 @@ public class EventServiceImpl implements EventService {
         return enrichEventShortDtoWithUsers(events);
     }
 
-    private List<EventShortDto> findSortedByViews(int from, int size, String text, List<Long> categories,
-                                                  Boolean paid, LocalDateTime rangeStart, LocalDateTime rangeEnd,
-                                                  Boolean onlyAvailable) {
-        log.trace("Поиск без пагинации для сортировки по просмотрам");
+    private List<EventShortDto> findSortedByRating(int from, int size, String text, List<Long> categories,
+                                                   Boolean paid, LocalDateTime rangeStart, LocalDateTime rangeEnd,
+                                                   Boolean onlyAvailable) {
+        log.trace("Поиск без пагинации для сортировки по рейтингу");
         List<Event> events = eventRepository.findEventsPublic(text, categories, paid, rangeStart, rangeEnd, null);
-        log.trace("Найдено {} событий для сортировки по просмотрам", events.size());
+        log.trace("Найдено {} событий для сортировки по рейтингу", events.size());
 
         if (Boolean.TRUE.equals(onlyAvailable)) {
             events = filterOnlyAvailable(events);
@@ -431,7 +378,7 @@ public class EventServiceImpl implements EventService {
         if (result.size() > 100) {
             log.debug("Сортировка в памяти для {} событий (может быть затратно)", result.size());
         }
-        result.sort(Comparator.comparing(EventShortDto::getViews).reversed());
+        result.sort(Comparator.comparing(EventShortDto::getRating).reversed());
         int toIndex = Math.min(from + size, result.size());
         if (from >= result.size()) {
             log.trace("Запрошенный offset превышает количество найденных событий");
@@ -446,7 +393,6 @@ public class EventServiceImpl implements EventService {
             log.trace("Запрос статистики для {} событий (batch)", events.size());
         }
         Map<Long, Long> confirmedRequestsMap = getConfirmedRequestsBatch(events);
-        Map<Long, Long> viewsMap = getEventsViewsBatch(events);
 
         Set<Long> userIds = events.stream().map(Event::getInitiatorId).collect(Collectors.toSet());
         Map<Long, UserShortDto> userCache = userIds.stream()
@@ -454,8 +400,8 @@ public class EventServiceImpl implements EventService {
 
         List<EventShortDto> result = events.stream().map(event -> {
             Long confirmed = confirmedRequestsMap.getOrDefault(event.getId(), 0L);
-            Long views = viewsMap.getOrDefault(event.getId(), 0L);
-            EventShortDto dto = eventMapper.toEventShortDto(event, confirmed, views);
+            Double rating = getEventRating(event);
+            EventShortDto dto = eventMapper.toEventShortDto(event, confirmed, rating);
             dto.setInitiator(userCache.get(event.getInitiatorId()));
             return dto;
         }).collect(Collectors.toList());
@@ -470,12 +416,75 @@ public class EventServiceImpl implements EventService {
         if (event.getState() != EventState.PUBLISHED) {
             throw new NotFoundException("Событие с id=" + eventId + " не опубликовано");
         }
+
+        String userIdHeader = request.getHeader("X-EWM-USER-ID");
+        if (userIdHeader != null) {
+            try {
+                long userId = Long.parseLong(userIdHeader);
+                collectorGrpcClient.sendUserAction(userId, eventId, ActionTypeProto.ACTION_VIEW);
+                log.debug("Отправлено действие VIEW для пользователя {} по событию {}", userId, eventId);
+            } catch (NumberFormatException e) {
+                log.warn("Некорректный заголовок X-EWM-USER-ID: {}", userIdHeader);
+            }
+        }
+
         Long eventRequests = getEventRequests(event);
-        Long views = getEventViews(event);
-        sendStats(request);
-        EventFullDto dto = eventMapper.toEventFullDto(event, eventRequests, views);
+        Double rating = getEventRating(event);
+        EventFullDto dto = eventMapper.toEventFullDto(event, eventRequests, rating);
         dto.setInitiator(getUserShortDto(event.getInitiatorId()));
         return dto;
+    }
+
+    @Override
+    public List<EventShortDto> getRecommendations(Long userId, int maxResults) {
+        log.info("Получение рекомендаций для пользователя {}", userId);
+        try (Stream<RecommendedEventProto> stream = analyzerGrpcClient.getUserPredictions(userId, maxResults)) {
+            List<RecommendedEventProto> protoList = stream.toList();
+            if (protoList.isEmpty()) {
+                log.debug("Для пользователя {} не найдено рекомендаций", userId);
+                return Collections.emptyList();
+            }
+            List<Long> eventIds = protoList.stream().map(RecommendedEventProto::getEventId).toList();
+            Map<Long, Double> scoreMap = protoList.stream()
+                    .collect(Collectors.toMap(RecommendedEventProto::getEventId, RecommendedEventProto::getScore));
+
+            List<Event> events = eventRepository.findAllById(eventIds);
+            if (events.isEmpty()) {
+                log.debug("События по рекомендациям для пользователя {} не найдены", userId);
+                return Collections.emptyList();
+            }
+
+            List<ConfirmedRequestsDto> confirmed = requestClient.getConfirmedRequests(eventIds);
+            Map<Long, Long> confirmedMap = confirmed.stream()
+                    .collect(Collectors.toMap(ConfirmedRequestsDto::getEventId, ConfirmedRequestsDto::getCount));
+
+            Set<Long> userIds = events.stream().map(Event::getInitiatorId).collect(Collectors.toSet());
+            Map<Long, UserShortDto> userCache = userIds.stream()
+                    .collect(Collectors.toMap(uid -> uid, this::getUserShortDto));
+
+            return events.stream().map(event -> {
+                        Long conf = confirmedMap.getOrDefault(event.getId(), 0L);
+                        Double rating = scoreMap.getOrDefault(event.getId(), event.getRating());
+                        EventShortDto dto = eventMapper.toEventShortDto(event, conf, rating);
+                        dto.setInitiator(userCache.get(event.getInitiatorId()));
+                        return dto;
+                    }).sorted(Comparator.comparing(EventShortDto::getRating).reversed())
+                    .limit(maxResults)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Ошибка при получении рекомендаций для пользователя {}", userId, e);
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    @Transactional
+    public void likeEvent(Long userId, Long eventId) {
+        log.info("Пользователь {} ставит лайк событию {}", userId, eventId);
+        if (!requestClient.hasUserVisitedEvent(userId, eventId)) {
+            throw new ValidationException("Пользователь должен посетить событие, прежде чем ставить лайк");
+        }
+        collectorGrpcClient.sendUserAction(userId, eventId, ActionTypeProto.ACTION_LIKE);
     }
 
     @Transactional
@@ -520,7 +529,7 @@ public class EventServiceImpl implements EventService {
                         try {
                             moderationCommentClient.createComment(request);
                         } catch (Exception e) {
-                            log.error("Failed to create moderation comment for event {}: {}", eventId, e.getMessage());
+                            log.error("Не удалось создать комментарий модерации для события {}: {}", eventId, e.getMessage());
                         }
                     }
                     break;
@@ -538,7 +547,7 @@ public class EventServiceImpl implements EventService {
                     try {
                         moderationCommentClient.createComment(request);
                     } catch (Exception e) {
-                        log.error("Failed to create moderation comment for event {}: {}", eventId, e.getMessage());
+                        log.error("Не удалось создать комментарий модерации для события {}: {}", eventId, e.getMessage());
                     }
                     break;
             }
@@ -551,13 +560,13 @@ public class EventServiceImpl implements EventService {
         try {
             comments = moderationCommentClient.getCommentsByEventIds(List.of(eventId));
         } catch (Exception e) {
-            log.error("Failed to get moderation comments for event {}: {}", eventId, e.getMessage());
+            log.error("Не удалось получить комментарии модерации для события {}: {}", eventId, e.getMessage());
         }
 
-        Long views = getEventViews(updatedEvent);
         Long eventRequests = getEventRequests(updatedEvent);
+        Double rating = getEventRating(updatedEvent);
 
-        EventFullDto eventFullDto = eventMapper.toEventFullDto(updatedEvent, eventRequests, views);
+        EventFullDto eventFullDto = eventMapper.toEventFullDto(updatedEvent, eventRequests, rating);
         eventFullDto.setInitiator(getUserShortDto(event.getInitiatorId()));
         return EventFullDtoWithModeration.fromEventFullDto(eventFullDto, comments);
     }
@@ -582,7 +591,6 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
 
         Map<Long, Long> confirmedRequestsMap = getConfirmedRequestsBatch(events);
-        Map<Long, Long> viewsMap = getEventsViewsBatch(events);
 
         Map<Long, List<ModerationCommentDto>> commentsMap = getCommentsBatch(eventIds);
 
@@ -592,8 +600,8 @@ public class EventServiceImpl implements EventService {
 
         return events.stream().map(event -> {
             Long confirmed = confirmedRequestsMap.getOrDefault(event.getId(), 0L);
-            Long views = viewsMap.getOrDefault(event.getId(), 0L);
-            EventFullDto eventFullDto = eventMapper.toEventFullDto(event, confirmed, views);
+            Double rating = getEventRating(event);
+            EventFullDto eventFullDto = eventMapper.toEventFullDto(event, confirmed, rating);
             eventFullDto.setInitiator(userCache.get(event.getInitiatorId()));
             List<ModerationCommentDto> comments = commentsMap.getOrDefault(event.getId(), Collections.emptyList());
             return EventFullDtoWithModeration.fromEventFullDto(eventFullDto, comments);
@@ -612,7 +620,7 @@ public class EventServiceImpl implements EventService {
                             Collectors.toList()
                     ));
         } catch (Exception e) {
-            log.error("Failed to get moderation comments for eventIds {}: {}", eventIds, e.getMessage());
+            log.error("Не удалось получить комментарии модерации для eventIds {}: {}", eventIds, e.getMessage());
             return Collections.emptyMap();
         }
     }

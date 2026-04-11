@@ -23,4 +23,6 @@ public interface RequestService {
 
     List<ConfirmedRequestsDto> getConfirmedRequestsCount(List<Long> eventIds);
 
+    boolean hasUserVisitedEvent(Long userId, Long eventId);
+
 }

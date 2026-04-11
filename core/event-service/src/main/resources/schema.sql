@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS events (
     request_moderation BOOLEAN DEFAULT TRUE NOT NULL,
     state VARCHAR(20) NOT NULL,
     title VARCHAR(120) NOT NULL,
+    rating DOUBLE PRECISION DEFAULT 0.0 NOT NULL,
     CONSTRAINT pk_events PRIMARY KEY (id),
     CONSTRAINT fk_events_categories FOREIGN KEY (category_id) REFERENCES categories (id)
 );
