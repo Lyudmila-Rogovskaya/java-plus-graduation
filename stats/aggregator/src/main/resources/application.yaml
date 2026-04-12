@@ -24,6 +24,10 @@ kafka:
     max-poll-records: 500
     enable-auto-commit: false
     auto-offset-reset: earliest
+    properties:
+      retry.backoff.ms: 1000
+      reconnect.backoff.ms: 2000
+      reconnect.backoff.max.ms: 15000
   producer:
     key-serializer: org.apache.kafka.common.serialization.StringSerializer
     value-serializer: ru.practicum.aggregator.serialization.EventsSimilarityAvroSerializer

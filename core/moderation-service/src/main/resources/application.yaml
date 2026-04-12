@@ -28,5 +28,5 @@ eureka:
 
 logging:
   level:
-    ru.practicum: DEBUG
+    ru.practicum: INFO
     org.springframework.cloud: INFO

@@ -152,6 +152,12 @@ services:
       CLUSTER_ID: 'K0EA9p0yEe6MkAAAAkKsEg'
     networks:
       - ewm-network
+    healthcheck: # <-- добавить
+      test: [ "CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
 
   kafka-init-topics:
     image: confluentinc/confluent-local:7.4.3
@@ -162,10 +168,8 @@ services:
       bash -c "
         echo 'Waiting for Kafka to be ready...' &&
         sleep 30 &&
-        kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 \
-          --topic stats.user-actions.v1 --partitions 1 --replication-factor 1 &&
-        kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 \
-          --topic stats.events-similarity.v1 --partitions 1 --replication-factor 1
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic stats.user-actions.v1 --partitions 1 --replication-factor 1 &&
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic stats.events-similarity.v1 --partitions 1 --replication-factor 1
       "
     init: true
     networks:
@@ -269,7 +273,7 @@ services:
       config-server:
         condition: service_started
       kafka:
-        condition: service_started
+        condition: service_healthy
     networks:
       - ewm-network
 
