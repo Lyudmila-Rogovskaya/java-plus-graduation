@@ -20,9 +20,10 @@ services:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
     networks:
       - ewm-network
 
@@ -152,12 +153,12 @@ services:
       CLUSTER_ID: 'K0EA9p0yEe6MkAAAAkKsEg'
     networks:
       - ewm-network
-    healthcheck: # <-- добавить
+    healthcheck:
       test: [ "CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list" ]
       interval: 10s
       timeout: 10s
       retries: 10
-      start_period: 30s
+      start_period: 45s
 
   kafka-init-topics:
     image: confluentinc/confluent-local:7.4.3
@@ -273,7 +274,7 @@ services:
       config-server:
         condition: service_started
       kafka:
-        condition: service_healthy
+        condition: service_started
     networks:
       - ewm-network
 
