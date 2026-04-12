@@ -17,6 +17,9 @@ spring:
             - classpath:/config/event-service/
             - classpath:/config/request-service/
             - classpath:/config/moderation-service/
+            - classpath:/config/aggregator/
+            - classpath:/config/analyzer/
+            - classpath:/config/collector/
 
 eureka:
   client:
