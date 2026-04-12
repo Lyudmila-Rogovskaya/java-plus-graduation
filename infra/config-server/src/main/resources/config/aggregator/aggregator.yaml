@@ -18,7 +18,7 @@ kafka:
   consumer:
     group-id: aggregator-group
     key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    value-deserializer: ru.practicum.ewm.stats.avro.serialization.UserActionAvroDeserializer
+    value-deserializer: ru.practicum.aggregator.serialization.UserActionAvroDeserializer
     max-poll-records: 500
     enable-auto-commit: false
     auto-offset-reset: earliest
