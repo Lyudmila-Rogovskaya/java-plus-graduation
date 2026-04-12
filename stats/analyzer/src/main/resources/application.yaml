@@ -35,31 +35,6 @@ grpc:
   server:
     port: 0
 
-kafka:
-  bootstrap-servers: kafka:29092
-  consumer:
-    user-actions:
-      group-id: analyzer-user-actions-group
-      client-id: analyzer-user-actions-client
-      max-poll-records: 500
-      properties:
-        "specific.avro.reader": true
-        retry.backoff.ms: 1000
-        reconnect.backoff.ms: 2000
-        reconnect.backoff.max.ms: 15000
-    events-similarity:
-      group-id: analyzer-similarity-group
-      client-id: analyzer-similarity-client
-      max-poll-records: 500
-      properties:
-        "specific.avro.reader": true
-        retry.backoff.ms: 1000
-        reconnect.backoff.ms: 2000
-        reconnect.backoff.max.ms: 15000
-  topics:
-    user-actions: stats.user-actions.v1
-    events-similarity: stats.events-similarity.v1
-
 eureka:
   client:
     serviceUrl:

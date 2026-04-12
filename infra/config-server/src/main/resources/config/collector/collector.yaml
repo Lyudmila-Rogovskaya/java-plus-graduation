@@ -19,6 +19,19 @@ grpc:
 
 kafka:
   bootstrap-servers: kafka:29092
+  consumer:
+    group-id: aggregator-group
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: ru.practicum.aggregator.serialization.UserActionAvroDeserializer
+    max-poll-records: 500
+    enable-auto-commit: false
+    auto-offset-reset: earliest
+    properties:
+      max.block.ms: 60000
+      request.timeout.ms: 60000
+      retry.backoff.ms: 1000
+      reconnect.backoff.ms: 2000
+      reconnect.backoff.max.ms: 15000
   producer:
     key-serializer: org.apache.kafka.common.serialization.StringSerializer
     value-serializer: ru.practicum.collector.serialization.UserActionAvroSerializer

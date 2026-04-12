@@ -23,6 +23,8 @@ kafka:
     enable-auto-commit: false
     auto-offset-reset: earliest
     properties:
+      max.block.ms: 60000
+      request.timeout.ms: 60000
       retry.backoff.ms: 1000
       reconnect.backoff.ms: 2000
       reconnect.backoff.max.ms: 15000

@@ -22,41 +22,54 @@ public class KafkaConfig {
 
     private final KafkaProperties kafkaProperties;
 
-    private <T> ConsumerFactory<String, T> consumerFactory(Class<?> valueDeserializer,
-                                                           String groupId,
-                                                           String clientId) {
+    private <T> ConsumerFactory<String, T> consumerFactory(
+            Class<?> valueDeserializer,
+            String groupId,
+            String clientId,
+            int maxPollRecords,
+            Map<String, String> additionalProps) {
+
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers());
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDeserializer);
-        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG,
-                kafkaProperties.getConsumer().get("user-actions").getMaxPollRecords());
-        props.putAll(kafkaProperties.getConsumer().get("user-actions").getProperties());
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, maxPollRecords);
+        if (additionalProps != null) {
+            props.putAll(additionalProps);
+        }
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, UserActionAvro> userActionsKafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, UserActionAvro>
+    userActionsKafkaListenerContainerFactory() {
+
         ConcurrentKafkaListenerContainerFactory<String, UserActionAvro> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory(
                 UserActionAvroDeserializer.class,
-                kafkaProperties.getConsumer().get("user-actions").getGroupId(),
-                kafkaProperties.getConsumer().get("user-actions").getClientId()
+                kafkaProperties.getConsumer().getUserActionsGroupId(),
+                kafkaProperties.getConsumer().getUserActionsClientId(),
+                kafkaProperties.getConsumer().getUserActionsMaxPollRecords(),
+                kafkaProperties.getConsumer().getUserActionsProperties()
         ));
         return factory;
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, EventsSimilarityAvro> eventsSimilarityKafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, EventsSimilarityAvro>
+    eventsSimilarityKafkaListenerContainerFactory() {
+
         ConcurrentKafkaListenerContainerFactory<String, EventsSimilarityAvro> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory(
                 EventsSimilarityAvroDeserializer.class,
-                kafkaProperties.getConsumer().get("events-similarity").getGroupId(),
-                kafkaProperties.getConsumer().get("events-similarity").getClientId()
+                kafkaProperties.getConsumer().getEventsSimilarityGroupId(),
+                kafkaProperties.getConsumer().getEventsSimilarityClientId(),
+                kafkaProperties.getConsumer().getEventsSimilarityMaxPollRecords(),
+                kafkaProperties.getConsumer().getEventsSimilarityProperties()
         ));
         return factory;
     }
