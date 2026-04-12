@@ -154,10 +154,10 @@ services:
     networks:
       - ewm-network
     healthcheck:
-      test: [ "CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list" ]
+      test: [ "CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:29092" ]
       interval: 10s
       timeout: 10s
-      retries: 10
+      retries: 15
       start_period: 60s
 
   kafka-init-topics:
@@ -258,7 +258,9 @@ services:
       config-server:
         condition: service_started
       kafka:
-        condition: service_started
+        condition: service_healthy
+      kafka-init-topics:
+        condition: service_completed_successfully
     networks:
       - ewm-network
 
@@ -292,7 +294,9 @@ services:
       config-server:
         condition: service_started
       kafka:
-        condition: service_started
+        condition: service_healthy
+      kafka-init-topics:
+        condition: service_completed_successfully
       analyzer-db:
         condition: service_healthy
     networks:
