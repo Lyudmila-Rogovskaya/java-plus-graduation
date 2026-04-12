@@ -31,11 +31,12 @@ public class GrpcUserActionController extends UserActionControllerGrpc.UserActio
             log.debug("Получено действие пользователя: userId={}, eventId={}, actionType={}",
                     request.getUserId(), request.getEventId(), request.getActionType());
 
+            long epochMillis = protoTimestampToMillis(request.getTimestamp());
             UserActionAvro avro = UserActionAvro.newBuilder()
                     .setUserId(request.getUserId())
                     .setEventId(request.getEventId())
                     .setActionType(ActionTypeMapper.map(request.getActionType()))
-                    .setTimestamp(Instant.ofEpochMilli(protoTimestampToMillis(request.getTimestamp())))
+                    .setTimestamp(Instant.ofEpochMilli(epochMillis))
                     .build();
 
             kafkaTemplate.send(userActionsTopic, String.valueOf(avro.getEventId()), avro)
@@ -43,7 +44,10 @@ public class GrpcUserActionController extends UserActionControllerGrpc.UserActio
                         if (ex != null) {
                             log.error("Не удалось отправить действие пользователя в Kafka", ex);
                         } else {
-                            log.debug("Действие пользователя отправлено в Kafka: offset={}", result.getRecordMetadata().offset());
+                            log.debug("Действие пользователя отправлено в Kafka: topic={}, partition={}, offset={}",
+                                    result.getRecordMetadata().topic(),
+                                    result.getRecordMetadata().partition(),
+                                    result.getRecordMetadata().offset());
                         }
                     });
 
@@ -58,7 +62,7 @@ public class GrpcUserActionController extends UserActionControllerGrpc.UserActio
     }
 
     private long protoTimestampToMillis(Timestamp timestamp) {
-        return timestamp.getSeconds() * 1000 + timestamp.getNanos() / 1_000_000;
+        return timestamp.getSeconds() * 1000L + timestamp.getNanos() / 1_000_000;
     }
 
 }

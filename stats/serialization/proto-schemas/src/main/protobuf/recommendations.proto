@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package stats.service;
 
-import "google/protobuf/timestamp.proto";
-
 option java_multiple_files = true;
 option java_package = "ru.practicum.ewm.stats.proto";
 

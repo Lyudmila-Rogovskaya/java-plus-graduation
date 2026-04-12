@@ -64,9 +64,9 @@ public class UserActionProcessor {
 
     private double mapActionToWeight(ActionTypeAvro actionType) {
         return switch (actionType) {
-            case VIEW -> WEIGHT_VIEW;
-            case REGISTER -> WEIGHT_REGISTER;
-            case LIKE -> WEIGHT_LIKE;
+            case ACTION_VIEW -> WEIGHT_VIEW;
+            case ACTION_REGISTER -> WEIGHT_REGISTER;
+            case ACTION_LIKE -> WEIGHT_LIKE;
             default -> 0.0;
         };
     }
