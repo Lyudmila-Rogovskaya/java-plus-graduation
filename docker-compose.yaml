@@ -51,6 +51,10 @@ services:
         condition: service_started
       event-db:
         condition: service_healthy
+      collector:
+        condition: service_started
+      analyzer:
+        condition: service_started
     networks:
       - ewm-network
 

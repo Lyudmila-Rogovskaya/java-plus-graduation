@@ -60,8 +60,11 @@ eureka:
       defaultZone: http://discovery-server:8761/eureka/
   instance:
     prefer-ip-address: true
+    metadata-map:
+      gRPC:
+        port: ${grpc.server.port}
 
 logging:
   level:
-    ru.practicum: DEBUG
-    org.apache.kafka: WARN
+    ru.practicum: INFO
+    org.apache.kafka: INFO

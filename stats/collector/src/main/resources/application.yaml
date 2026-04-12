@@ -33,7 +33,10 @@ eureka:
       defaultZone: http://discovery-server:8761/eureka/
   instance:
     prefer-ip-address: true
+    metadata-map:
+      gRPC:
+        port: ${grpc.server.port}
 
 logging:
   level:
-    ru.practicum.collector: DEBUG
+    ru.practicum.collector: INFO
