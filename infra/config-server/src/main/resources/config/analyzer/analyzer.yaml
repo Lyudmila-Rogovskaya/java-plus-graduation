@@ -34,7 +34,7 @@ grpc:
     port: 0
 
 kafka:
-  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
   consumer:
     user-actions-group-id: analyzer-user-actions-group
     user-actions-client-id: analyzer-user-actions-client
