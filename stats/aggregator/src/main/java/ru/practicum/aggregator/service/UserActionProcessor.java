@@ -11,9 +11,9 @@ import ru.practicum.ewm.stats.avro.ActionTypeAvro;
 import ru.practicum.ewm.stats.avro.EventsSimilarityAvro;
 import ru.practicum.ewm.stats.avro.UserActionAvro;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.time.Instant;
 
 @Slf4j
 @Component
@@ -33,9 +33,8 @@ public class UserActionProcessor {
     private static final double WEIGHT_REGISTER = 0.8;
     private static final double WEIGHT_LIKE = 1.0;
 
-    @KafkaListener(topics = "${kafka.topics.user-actions}")
-    public void processUserAction(ConsumerRecord<String, UserActionAvro> record) {
-
+    @KafkaListener(topics = "${kafka.topics.user-actions}", containerFactory = "kafkaListenerContainerFactory")
+    public void processUserAction(ConsumerRecord<Long, UserActionAvro> record) {
         UserActionAvro action = record.value();
         long userId = action.getUserId();
         long eventId = action.getEventId();

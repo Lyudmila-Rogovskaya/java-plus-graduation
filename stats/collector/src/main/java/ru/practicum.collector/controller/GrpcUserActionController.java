@@ -20,7 +20,7 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class GrpcUserActionController extends UserActionControllerGrpc.UserActionControllerImplBase {
 
-    private final KafkaTemplate<String, UserActionAvro> kafkaTemplate;
+    private final KafkaTemplate<Long, UserActionAvro> kafkaTemplate;
 
     @Value("${kafka.topics.user-actions}")
     private String userActionsTopic;
@@ -39,7 +39,7 @@ public class GrpcUserActionController extends UserActionControllerGrpc.UserActio
                     .setTimestamp(Instant.ofEpochMilli(epochMillis))
                     .build();
 
-            kafkaTemplate.send(userActionsTopic, String.valueOf(avro.getEventId()), avro)
+            kafkaTemplate.send(userActionsTopic, avro.getEventId(), avro)
                     .whenComplete((result, ex) -> {
                         if (ex != null) {
                             log.error("Не удалось отправить действие пользователя в Kafka", ex);
