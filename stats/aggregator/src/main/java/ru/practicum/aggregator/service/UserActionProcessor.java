@@ -64,9 +64,9 @@ public class UserActionProcessor {
 
     private double mapActionToWeight(ActionTypeAvro actionType) {
         return switch (actionType) {
-            case ACTION_VIEW -> WEIGHT_VIEW;
-            case ACTION_REGISTER -> WEIGHT_REGISTER;
-            case ACTION_LIKE -> WEIGHT_LIKE;
+            case VIEW -> WEIGHT_VIEW;
+            case REGISTER -> WEIGHT_REGISTER;
+            case LIKE -> WEIGHT_LIKE;
             default -> 0.0;
         };
     }
@@ -127,14 +127,16 @@ public class UserActionProcessor {
     }
 
     private void sendSimilarity(long eventA, long eventB, double similarity, long timestamp) {
+        long first = Math.min(eventA, eventB);
+        long second = Math.max(eventA, eventB);
         EventsSimilarityAvro avro = EventsSimilarityAvro.newBuilder()
-                .setEventA(eventA)
-                .setEventB(eventB)
+                .setEventA(first)
+                .setEventB(second)
                 .setScore(similarity)
                 .setTimestamp(Instant.ofEpochMilli(timestamp))
                 .build();
-        kafkaTemplate.send(similarityTopic, eventA + "-" + eventB, avro);
-        log.debug("Отправлено сходство: eventA={}, eventB={}, score={}", eventA, eventB, similarity);
+        kafkaTemplate.send(similarityTopic, first + "-" + second, avro);
+        log.debug("Отправлено сходство: eventA={}, eventB={}, score={}", first, second, similarity);
     }
 
 }

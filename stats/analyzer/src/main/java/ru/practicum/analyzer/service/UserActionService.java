@@ -50,9 +50,9 @@ public class UserActionService {
 
     private double mapActionToWeight(ActionTypeAvro actionType) {
         return switch (actionType) {
-            case ACTION_VIEW -> 0.4;
-            case ACTION_REGISTER -> 0.8;
-            case ACTION_LIKE -> 1.0;
+            case VIEW -> 0.4;
+            case REGISTER -> 0.8;
+            case LIKE -> 1.0;
             default -> throw new IllegalArgumentException("Unknown action type: " + actionType);
         };
     }
