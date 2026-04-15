@@ -18,23 +18,26 @@ import java.util.stream.Collectors;
 public class RecommendationService {
 
     private static final int DEFAULT_RECENT_ACTIONS_LIMIT = 10;
+    private static final int MAX_ACTIONS_TO_LOAD = 100;
 
     private final UserActionService userActionService;
     private final EventSimilarityRepository eventSimilarityRepository;
     private final UserActionRepository userActionRepository;
 
     public List<RecommendedEventProto> getSimilarEvents(long eventId, long userId, int maxResults) {
-        List<EventSimilarity> similarities = eventSimilarityRepository.findSimilarEvents(eventId);
+        List<Long> interactedEventIds = userActionService.getUserActions(userId, MAX_ACTIONS_TO_LOAD)
+                .stream().map(UserAction::getEventId).toList();
 
-        Set<Long> interactedEventIds = userActionService.getUserActions(userId, Integer.MAX_VALUE)
-                .stream().map(UserAction::getEventId).collect(Collectors.toSet());
+        if (interactedEventIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<EventSimilarity> similarities = eventSimilarityRepository
+                .findSimilarEventsExcluding(eventId, interactedEventIds);
 
         List<RecommendedEventProto> result = new ArrayList<>();
         for (EventSimilarity es : similarities) {
             long otherEventId = (es.getEventA() == eventId) ? es.getEventB() : es.getEventA();
-            if (interactedEventIds.contains(otherEventId)) {
-                continue;
-            }
             result.add(RecommendedEventProto.newBuilder()
                     .setEventId(otherEventId)
                     .setScore(es.getScore())
@@ -52,10 +55,18 @@ public class RecommendationService {
 
         Set<Long> interactedEventIds = recentActions.stream()
                 .map(UserAction::getEventId).collect(Collectors.toSet());
+        List<Long> seedEventIds = recentActions.stream()
+                .map(UserAction::getEventId).toList();
 
-        List<Long> seedEventIds = recentActions.stream().map(UserAction::getEventId).toList();
+        Map<Long, CandidateAccumulator> candidateMap = buildCandidateMap(seedEventIds, interactedEventIds, recentActions);
+
+        return convertCandidatesToResult(candidateMap, maxResults);
+    }
+
+    private Map<Long, CandidateAccumulator> buildCandidateMap(List<Long> seedEventIds,
+                                                              Set<Long> interactedEventIds,
+                                                              List<UserAction> recentActions) {
         List<EventSimilarity> allSimilarities = eventSimilarityRepository.findSimilarEventsForIds(seedEventIds);
-
         Map<Long, CandidateAccumulator> candidateMap = new HashMap<>();
 
         for (EventSimilarity es : allSimilarities) {
@@ -74,30 +85,27 @@ public class RecommendationService {
             }
 
             if (candidateId != null && seedId != null) {
-                double userWeight = 0.0;
-                for (UserAction ua : recentActions) {
-                    if (ua.getEventId().equals(seedId)) {
-                        userWeight = ua.getWeight();
-                        break;
-                    }
-                }
-
-                CandidateAccumulator acc = candidateMap.computeIfAbsent(candidateId,
-                        k -> new CandidateAccumulator());
-                acc.add(score, userWeight);
+                double userWeight = findUserWeightForEvent(recentActions, seedId);
+                candidateMap.computeIfAbsent(candidateId, k -> new CandidateAccumulator()).add(score, userWeight);
             }
         }
+        return candidateMap;
+    }
 
+    private double findUserWeightForEvent(List<UserAction> recentActions, long eventId) {
+        return recentActions.stream()
+                .filter(ua -> ua.getEventId().equals(eventId))
+                .mapToDouble(UserAction::getWeight)
+                .findFirst()
+                .orElse(0.0);
+    }
+
+    private List<RecommendedEventProto> convertCandidatesToResult(Map<Long, CandidateAccumulator> candidateMap, int maxResults) {
         return candidateMap.entrySet().stream()
-                .map(e -> {
-                    long eventId = e.getKey();
-                    CandidateAccumulator acc = e.getValue();
-                    double predictedScore = acc.getSumWeighted() / acc.getSumSimilarity();
-                    return RecommendedEventProto.newBuilder()
-                            .setEventId(eventId)
-                            .setScore(predictedScore)
-                            .build();
-                })
+                .map(e -> RecommendedEventProto.newBuilder()
+                        .setEventId(e.getKey())
+                        .setScore(e.getValue().getSumWeighted() / e.getValue().getSumSimilarity())
+                        .build())
                 .sorted(Comparator.comparingDouble(RecommendedEventProto::getScore).reversed())
                 .limit(maxResults)
                 .collect(Collectors.toList());

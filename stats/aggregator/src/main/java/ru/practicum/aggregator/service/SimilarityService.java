@@ -2,9 +2,9 @@ package ru.practicum.aggregator.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import ru.practicum.aggregator.types.EventId;
+import ru.practicum.aggregator.types.UserId;
 import ru.practicum.ewm.stats.avro.ActionTypeAvro;
 import ru.practicum.ewm.stats.avro.EventsSimilarityAvro;
 import ru.practicum.ewm.stats.avro.UserActionAvro;
@@ -22,22 +22,19 @@ public class SimilarityService {
     private static final double WEIGHT_REGISTER = 0.8;
     private static final double WEIGHT_LIKE = 1.0;
 
-    private final Map<Long, Map<Long, Double>> weightMatrix = new ConcurrentHashMap<>();
-    private final Map<Long, Double> totalWeightByEvent = new ConcurrentHashMap<>();
-    private final Map<Long, Map<Long, Double>> minSums = new ConcurrentHashMap<>();
-    private final Map<Long, Set<Long>> eventsByUser = new ConcurrentHashMap<>();
+    private final Map<EventId, Map<UserId, Double>> weightMatrix = new ConcurrentHashMap<>();
+    private final Map<EventId, Double> totalWeightByEvent = new ConcurrentHashMap<>();
+    private final Map<EventId, Map<EventId, Double>> minSums = new ConcurrentHashMap<>();
+    private final Map<UserId, Set<EventId>> eventsByUser = new ConcurrentHashMap<>();
 
-    private final KafkaTemplate<String, EventsSimilarityAvro> kafkaTemplate;
-
-    @Value("${kafka.topics.events-similarity}")
-    private String similarityTopic;
+    private final SimilarityEventPublisher eventPublisher;
 
     public void processUserAction(UserActionAvro action) {
-        long userId = action.getUserId();
-        long eventId = action.getEventId();
+        UserId userId = new UserId(action.getUserId());
+        EventId eventId = new EventId(action.getEventId());
         double actionWeight = mapActionToWeight(action.getActionType());
 
-        Map<Long, Double> userWeightsForEvent = weightMatrix.computeIfAbsent(eventId, k -> new ConcurrentHashMap<>());
+        Map<UserId, Double> userWeightsForEvent = weightMatrix.computeIfAbsent(eventId, k -> new ConcurrentHashMap<>());
         double oldWeight = userWeightsForEvent.getOrDefault(userId, 0.0);
 
         if (actionWeight <= oldWeight) {
@@ -51,39 +48,34 @@ public class SimilarityService {
         double delta = actionWeight - oldWeight;
         totalWeightByEvent.merge(eventId, delta, Double::sum);
 
-        Set<Long> userEvents = eventsByUser.computeIfAbsent(userId, k -> new HashSet<>());
+        Set<EventId> userEvents = eventsByUser.computeIfAbsent(userId, k -> new HashSet<>());
 
         List<EventsSimilarityAvro> similaritiesToSend = new ArrayList<>();
-        for (Long otherEventId : userEvents) {
-            if (otherEventId == eventId) continue;
+        for (EventId otherEventId : userEvents) {
+            if (otherEventId.equals(eventId)) continue;
 
             double otherWeight = weightMatrix.getOrDefault(otherEventId, Map.of()).getOrDefault(userId, 0.0);
             if (otherWeight == 0.0) continue;
 
             double newSimilarity = recalculatePair(eventId, otherEventId, userId, oldWeight, actionWeight, otherWeight);
-            similaritiesToSend.add(mapToAvro(eventId, otherEventId, newSimilarity, action.getTimestamp()));
+            similaritiesToSend.add(mapToAvro(eventId.getValue(), otherEventId.getValue(), newSimilarity, action.getTimestamp()));
         }
 
         userEvents.add(eventId);
 
         for (EventsSimilarityAvro similarity : similaritiesToSend) {
-            String key = similarity.getEventA() + "-" + similarity.getEventB();
-            kafkaTemplate.send(similarityTopic, key, similarity);
-            log.debug("Отправлено сходство: eventA={}, eventB={}, score={}", similarity.getEventA(), similarity.getEventB(), similarity.getScore());
+            eventPublisher.send(similarity);
         }
     }
 
-    private double recalculatePair(long eventA, long eventB, long userId,
+    private double recalculatePair(EventId eventA, EventId eventB, UserId userId,
                                    double oldWeightA, double newWeightA, double weightB) {
         double oldContribution = Math.min(oldWeightA, weightB);
         double newContribution = Math.min(newWeightA, weightB);
         double deltaMin = newContribution - oldContribution;
 
-        if (deltaMin == 0.0) {
-        }
-
-        long first = Math.min(eventA, eventB);
-        long second = Math.max(eventA, eventB);
+        EventId first = eventA.getValue() <= eventB.getValue() ? eventA : eventB;
+        EventId second = first == eventA ? eventB : eventA;
 
         double currentMinSum = minSums.getOrDefault(first, Map.of()).getOrDefault(second, 0.0);
         double newMinSum = currentMinSum + deltaMin;

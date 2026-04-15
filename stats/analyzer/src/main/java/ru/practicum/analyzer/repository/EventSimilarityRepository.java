@@ -16,4 +16,11 @@ public interface EventSimilarityRepository extends JpaRepository<EventSimilarity
     @Query("SELECT es FROM EventSimilarity es WHERE (es.eventA IN :eventIds OR es.eventB IN :eventIds) ORDER BY es.score DESC")
     List<EventSimilarity> findSimilarEventsForIds(@Param("eventIds") List<Long> eventIds);
 
+    @Query("SELECT es FROM EventSimilarity es " +
+            "WHERE (es.eventA = :eventId AND es.eventB NOT IN :excludeIds) " +
+            "   OR (es.eventB = :eventId AND es.eventA NOT IN :excludeIds) " +
+            "ORDER BY es.score DESC")
+    List<EventSimilarity> findSimilarEventsExcluding(@Param("eventId") Long eventId,
+                                                     @Param("excludeIds") List<Long> excludeIds);
+
 }
