@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: analyzer
+  config:
+    import: "optional:configserver:"
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        serviceId: config-server
+      fail-fast: true
+      retry:
+        maxAttempts: 15
+        initialInterval: 2000
+        multiplier: 1.5
+        maxInterval: 10000
+  datasource:
+    url: jdbc:postgresql://analyzer-db:5432/analyzer
+    username: user
+    password: password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+grpc:
+  server:
+    port: 0
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://discovery-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    metadata-map:
+      gRPC:
+        port: ${grpc.server.port}
+
+logging:
+  level:
+    ru.practicum: INFO
+    org.apache.kafka: INFO

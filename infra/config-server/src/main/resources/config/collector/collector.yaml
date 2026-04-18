@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: collector
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        service-id: config-server
+      fail-fast: true
+      retry:
+        max-attempts: 15
+        initial-interval: 2000
+        multiplier: 1.5
+        max-interval: 10000
+
+grpc:
+  server:
+    port: 0
+
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  consumer:
+    group-id: aggregator-group
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: ru.practicum.aggregator.serialization.UserActionAvroDeserializer
+    max-poll-records: 500
+    enable-auto-commit: false
+    auto-offset-reset: earliest
+    properties:
+      max.block.ms: 60000
+      request.timeout.ms: 60000
+      retry.backoff.ms: 1000
+      reconnect.backoff.ms: 2000
+      reconnect.backoff.max.ms: 15000
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: ru.practicum.collector.serialization.UserActionAvroSerializer
+    acks: all
+    retries: 3
+    max-in-flight-requests-per-connection: 1
+  topics:
+    user-actions: stats.user-actions.v1
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://discovery-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    metadata-map:
+      gRPC:
+        port: ${grpc.server.port}
+
+logging:
+  level:
+    ru.practicum.collector: INFO

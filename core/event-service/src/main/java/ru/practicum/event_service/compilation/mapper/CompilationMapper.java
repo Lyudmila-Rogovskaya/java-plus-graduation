@@ -32,7 +32,8 @@ public interface CompilationMapper {
     }
 
     @Mapping(target = "confirmedRequests", ignore = true)
-    @Mapping(target = "views", ignore = true)
+    @Mapping(target = "rating", ignore = true)
+    @Mapping(target = "initiator", ignore = true)
     EventShortDto eventToEventShortDto(Event event);
 
 }

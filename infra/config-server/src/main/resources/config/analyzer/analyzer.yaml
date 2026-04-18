@@ -1,0 +1,72 @@
+spring:
+  application:
+    name: analyzer
+  datasource:
+    url: jdbc:postgresql://analyzer-db:5432/analyzer
+    username: user
+    password: password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        show-sql: false
+    sql:
+      init:
+        mode: always
+        schema-locations: classpath:schema.sql
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        service-id: config-server
+      fail-fast: true
+      retry:
+        max-attempts: 15
+        initial-interval: 2000
+        multiplier: 1.5
+        max-interval: 10000
+
+grpc:
+  server:
+    port: 0
+
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  consumer:
+    user-actions-group-id: analyzer-user-actions-group
+    user-actions-client-id: analyzer-user-actions-client
+    user-actions-max-poll-records: 500
+    user-actions-properties:
+      "specific.avro.reader": true
+      retry.backoff.ms: 1000
+      reconnect.backoff.ms: 2000
+      reconnect.backoff.max.ms: 15000
+    events-similarity-group-id: analyzer-similarity-group
+    events-similarity-client-id: analyzer-similarity-client
+    events-similarity-max-poll-records: 500
+    events-similarity-properties:
+      "specific.avro.reader": true
+      retry.backoff.ms: 1000
+      reconnect.backoff.ms: 2000
+      reconnect.backoff.max.ms: 15000
+  topics:
+    user-actions: stats.user-actions.v1
+    events-similarity: stats.events-similarity.v1
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://discovery-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    metadata-map:
+      gRPC:
+        port: ${grpc.server.port}
+
+logging:
+  level:
+    ru.practicum: INFO
+    org.apache.kafka: INFO

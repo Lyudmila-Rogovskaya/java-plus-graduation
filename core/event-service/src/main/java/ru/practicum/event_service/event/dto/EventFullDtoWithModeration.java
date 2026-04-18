@@ -25,10 +25,10 @@ public class EventFullDtoWithModeration extends EventFullDto {
                                       UserShortDto initiator, Location location, Boolean paid,
                                       Integer participantLimit, LocalDateTime publishedOn,
                                       Boolean requestModeration, EventState state, String title,
-                                      Long views, List<ModerationCommentDto> moderationComments) {
+                                      Double rating, List<ModerationCommentDto> moderationComments) {
         super(id, annotation, category, confirmedRequests, createdOn, description, eventDate,
                 initiator, location, paid, participantLimit, publishedOn, requestModeration,
-                state, title, views);
+                state, title, rating);
         this.moderationComments = moderationComments;
     }
 
@@ -50,7 +50,7 @@ public class EventFullDtoWithModeration extends EventFullDto {
                 eventFullDto.getRequestModeration(),
                 eventFullDto.getState(),
                 eventFullDto.getTitle(),
-                eventFullDto.getViews(),
+                eventFullDto.getRating(),
                 moderationComments
         );
     }

@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: aggregator
+  config:
+    import: "optional:configserver:"
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        serviceId: config-server
+      fail-fast: true
+      retry:
+        maxAttempts: 15
+        initialInterval: 2000
+        multiplier: 1.5
+        maxInterval: 10000
+
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  consumer:
+    group-id: aggregator-group
+    key-deserializer: org.apache.kafka.common.serialization.LongDeserializer
+    value-deserializer: ru.practicum.ewm.stats.avro.serialization.UserActionAvroDeserializer
+    max-poll-records: 500
+    enable-auto-commit: false
+    auto-offset-reset: earliest
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: ru.practicum.ewm.stats.avro.serialization.EventsSimilarityAvroSerializer
+  topics:
+    user-actions: stats.user-actions.v1
+    events-similarity: stats.events-similarity.v1
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://discovery-server:8761/eureka/

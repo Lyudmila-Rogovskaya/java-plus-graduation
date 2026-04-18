@@ -21,8 +21,14 @@ public class InternalRequestController {
 
     @GetMapping("/count")
     public List<ConfirmedRequestsDto> getConfirmedRequests(@RequestParam List<Long> eventIds) {
-        log.info("Internal request: get confirmed requests count for eventIds: {}", eventIds);
+        log.info("Внутренний запрос: получение количества подтверждённых заявок для eventIds: {}", eventIds);
         return requestService.getConfirmedRequestsCount(eventIds);
+    }
+
+    @GetMapping("/visited")
+    public boolean hasUserVisitedEvent(@RequestParam Long userId, @RequestParam Long eventId) {
+        log.info("Внутренний запрос: проверка, посещал ли пользователь {} событие {}", userId, eventId);
+        return requestService.hasUserVisitedEvent(userId, eventId);
     }
 
 }

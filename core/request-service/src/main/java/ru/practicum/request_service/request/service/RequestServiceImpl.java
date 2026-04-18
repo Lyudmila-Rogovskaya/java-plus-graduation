@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.ewm.stats.proto.ActionTypeProto;
 import ru.practicum.request_service.client.EventClient;
 import ru.practicum.request_service.client.UserClient;
 import ru.practicum.request_service.dto.EventValidationDto;
@@ -19,6 +20,7 @@ import ru.practicum.request_service.request.mapper.RequestMapper;
 import ru.practicum.request_service.request.model.Request;
 import ru.practicum.request_service.request.model.RequestStatus;
 import ru.practicum.request_service.request.repository.RequestRepository;
+import ru.practicum.stats_client.CollectorGrpcClient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +38,7 @@ public class RequestServiceImpl implements RequestService {
     private final RequestMapper requestMapper;
     private final EventClient eventClient;
     private final UserClient userClient;
+    private final CollectorGrpcClient collectorGrpcClient;
 
     @Override
     public List<ParticipationRequestDto> getUserRequests(Long userId) {
@@ -83,6 +86,15 @@ public class RequestServiceImpl implements RequestService {
         }
 
         Request savedRequest = requestRepository.save(request);
+
+        if (savedRequest.getStatus() == RequestStatus.CONFIRMED) {
+            try {
+                collectorGrpcClient.sendUserAction(userId, eventId, ActionTypeProto.ACTION_REGISTER);
+                log.debug("Отправлено действие REGISTER для пользователя {} на событие {}", userId, eventId);
+            } catch (Exception e) {
+                log.error("Не удалось отправить действие REGISTER для пользователя {} на событие {}", userId, eventId, e);
+            }
+        }
 
         log.info("Заявка создана с ID: {}", savedRequest.getId());
         return requestMapper.toDto(savedRequest);
@@ -149,11 +161,29 @@ public class RequestServiceImpl implements RequestService {
             throw new NotFoundException("Заявки не найдены");
         }
 
+        EventRequestStatusUpdateResult result;
         if (shouldAutoConfirmRequests(eventValidation)) {
-            return autoConfirmRequests(requests);
+            result = autoConfirmRequests(requests);
+        } else {
+            result = processRequestsWithLimit(eventValidation, requests, paramDto.getUpdateRequest().getStatus());
         }
 
-        return processRequestsWithLimit(eventValidation, requests, paramDto.getUpdateRequest().getStatus());
+        for (ParticipationRequestDto confirmedRequest : result.getConfirmedRequests()) {
+            try {
+                collectorGrpcClient.sendUserAction(
+                        confirmedRequest.getRequester(),
+                        confirmedRequest.getEvent(),
+                        ActionTypeProto.ACTION_REGISTER
+                );
+                log.debug("Отправлено действие REGISTER для пользователя {} на событие {}",
+                        confirmedRequest.getRequester(), confirmedRequest.getEvent());
+            } catch (Exception e) {
+                log.error("Не удалось отправить действие REGISTER для пользователя {} на событие {}",
+                        confirmedRequest.getRequester(), confirmedRequest.getEvent(), e);
+            }
+        }
+
+        return result;
     }
 
     private void validateRequestCreation(Long userId, Long eventId, EventValidationDto eventValidation) {
@@ -266,6 +296,12 @@ public class RequestServiceImpl implements RequestService {
         return results.stream()
                 .map(row -> new ConfirmedRequestsDto((Long) row[0], (Long) row[1]))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean hasUserVisitedEvent(Long userId, Long eventId) {
+        return requestRepository.existsByRequesterIdAndEventIdAndStatus(
+                userId, eventId, RequestStatus.CONFIRMED);
     }
 
 }

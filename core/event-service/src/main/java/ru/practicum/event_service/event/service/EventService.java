@@ -33,4 +33,8 @@ public interface EventService {
 
     EventDto getEventDto(Long eventId);
 
+    List<EventShortDto> getRecommendations(Long userId, int maxResults);
+
+    void likeEvent(Long userId, Long eventId);
+
 }

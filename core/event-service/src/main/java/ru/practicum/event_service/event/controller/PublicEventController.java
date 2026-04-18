@@ -6,11 +6,9 @@ import jakarta.validation.constraints.PositiveOrZero;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ru.practicum.event_service.event.dto.EventFullDto;
 import ru.practicum.event_service.event.dto.EventShortDto;
 import ru.practicum.event_service.event.dto.param.EventsPublicParams;
@@ -46,6 +44,21 @@ public class PublicEventController {
     public EventFullDto getEventPublic(@PathVariable Long id, HttpServletRequest request) {
         log.info("Публичный запрос события с id: {}", id);
         return eventService.getEventPublic(id, request);
+    }
+
+    @GetMapping("/events/recommendations")
+    public List<EventShortDto> getRecommendations(@RequestHeader("X-EWM-USER-ID") Long userId,
+                                                  @RequestParam(defaultValue = "10") @Positive int maxResults) {
+        log.info("Запрос рекомендаций для пользователя {}", userId);
+        return eventService.getRecommendations(userId, maxResults);
+    }
+
+    @PutMapping("/events/{eventId}/like")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void likeEvent(@RequestHeader("X-EWM-USER-ID") Long userId,
+                          @PathVariable Long eventId) {
+        log.info("Пользователь {} лайкает событие {}", userId, eventId);
+        eventService.likeEvent(userId, eventId);
     }
 
 }
